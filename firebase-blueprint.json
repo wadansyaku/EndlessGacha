@@ -1,0 +1,36 @@
+{
+  "entities": {
+    "SaveData": {
+      "title": "SaveData",
+      "description": "User's game save data.",
+      "type": "object",
+      "properties": {
+        "gameState": {
+          "type": "string",
+          "description": "JSON stringified game state."
+        },
+        "updatedAt": {
+          "type": "timestamp",
+          "description": "Timestamp of the last save."
+        },
+        "stage": {
+          "type": "number",
+          "description": "The highest stage reached by the user."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name."
+        }
+      },
+      "required": ["gameState", "updatedAt", "stage", "displayName"]
+    }
+  },
+  "firestore": {
+    "saves/{userId}": {
+      "schema": {
+        "$ref": "#/entities/SaveData"
+      },
+      "description": "Stores user save data."
+    }
+  }
+}
