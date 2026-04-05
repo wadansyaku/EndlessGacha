@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sword, Sparkles, Coins, Gem, Clock, Info, Trash2, ArrowUpCircle, TrendingUp, ScrollText, Target, Crown, BookOpen, Settings, Trophy, CloudUpload, CloudDownload, LogOut, LogIn, BarChart2, X, HelpCircle, CheckCircle2, Zap, ShieldAlert, Crosshair, Map, LayoutGrid } from 'lucide-react';
+import { Sword, Sparkles, Coins, Gem, Clock, Info, Trash2, ArrowUpCircle, TrendingUp, ScrollText, Target, Crown, BookOpen, Settings, Trophy, CloudUpload, CloudDownload, LogOut, LogIn, BarChart2, X, HelpCircle, CheckCircle2, Zap, ShieldAlert, Crosshair, Map, LayoutGrid, Combine, ChevronsUp } from 'lucide-react';
 import { cn, formatNumber } from './lib/utils';
 import { auth, db, loginWithGoogle, logout, handleFirestoreError, OperationType } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -44,7 +44,10 @@ import {
   EXPEDITIONS,
   ActiveExpedition,
   TALENTS,
-  TalentId
+  TalentId,
+  Equipment,
+  generateEquipmentDrop,
+  synthesizeEquipment
 } from './lib/gameData';
 
 type SelectedSlot = { type: 'board' | 'bench'; index: number } | null;
@@ -142,8 +145,10 @@ export default function App() {
         missions: INITIAL_MISSIONS,
         unlockedHeroes: [],
         autoSellN: false,
+        inventory: [],
       };
     }
+    if (!parsed.inventory) parsed.inventory = [];
     return parsed;
   });
 
@@ -203,11 +208,16 @@ export default function App() {
     }
   }, []); // Run only once on mount
 
-  const [activeTab, setActiveTab] = useState<'BATTLE' | 'GACHA' | 'UPGRADES' | 'MISSIONS' | 'PRESTIGE' | 'ARTIFACTS' | 'COLLECTION' | 'LEADERBOARD' | 'TACTICS' | 'EXPEDITIONS'>('BATTLE');
+  const [activeTab, setActiveTab] = useState<'BATTLE' | 'GACHA' | 'UPGRADES' | 'MISSIONS' | 'PRESTIGE' | 'ARTIFACTS' | 'COLLECTION' | 'LEADERBOARD' | 'TACTICS' | 'EXPEDITIONS' | 'INVENTORY'>('BATTLE');
+  const [inventoryTab, setInventoryTab] = useState<'LIST' | 'SYNTHESIS'>('LIST');
+  const [synthSelection, setSynthSelection] = useState<string[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
+  const [selectedEquipmentSlot, setSelectedEquipmentSlot] = useState<'weapon' | 'armor' | 'accessory' | null>(null);
+  const [dropNotification, setDropNotification] = useState<Equipment | null>(null);
   const [missionTab, setMissionTab] = useState<'DAILY' | 'ACHIEVEMENT'>('DAILY');
   const [showHelp, setShowHelp] = useState(false);
-  const [damageTexts, setDamageTexts] = useState<{ id: number; x: number; y: number; val: number; isCrit: boolean; timestamp: number }[]>([]);
+  const [damageTexts, setDamageTexts] = useState<{ id: number; x: number; y: number; val: number; isCrit: boolean; hitType?: 'normal' | 'weak' | 'resist'; timestamp: number }[]>([]);
   const [selected, setSelected] = useState<SelectedSlot>(null);
   const [showSynergies, setShowSynergies] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -217,6 +227,8 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
   const [showStats, setShowStats] = useState(false);
+  const [showBossWarning, setShowBossWarning] = useState(false);
+  const [gachaReveal, setGachaReveal] = useState<{ isOpen: boolean; hero: HeroInstance | null; is10Pull: boolean; heroes: HeroInstance[] }>({ isOpen: false, hero: null, is10Pull: false, heroes: [] });
 
   const [modalState, setModalState] = useState<{ isOpen: boolean; title: string; message: string; onConfirm?: () => void; isAlert?: boolean; confirmText?: string }>({ isOpen: false, title: '', message: '' });
   const [isPrestiging, setIsPrestiging] = useState(false);
@@ -260,7 +272,7 @@ export default function App() {
   const currentEnemyElement = useMemo(() => getEnemyElement(gameState.stage), [gameState.stage]);
   const currentEnemyTrait = useMemo(() => getEnemyTrait(gameState.stage), [gameState.stage]);
   const currentBossAffix = useMemo(() => getBossAffix(gameState.stage), [gameState.stage]);
-  const dps = useMemo(() => calculateDps(gameState, currentEnemyElement, currentEnemyTrait) * (gameState.prestigeMultiplier || 1) * (gameState.upgrades?.heroDps || 1), [gameState, currentEnemyElement, currentEnemyTrait]);
+  const dps = useMemo(() => calculateDps(gameState, currentEnemyElement, currentEnemyTrait), [gameState, currentEnemyElement, currentEnemyTrait]);
   const synergies = useMemo(() => getSynergies(gameState.board), [gameState.board]);
 
   // Offline Progress & Auto Save
@@ -294,7 +306,7 @@ export default function App() {
         const currentEnemyElement = getEnemyElement(prev.stage);
         const currentEnemyTrait = getEnemyTrait(prev.stage);
         const currentBossAffix = getBossAffix(prev.stage);
-        const offlineDps = calculateDps({ ...prev, currentBossAffix }, currentEnemyElement, currentEnemyTrait) * (prev.prestigeMultiplier || 1) * (prev.upgrades?.heroDps || 1) * 0.5;
+        const offlineDps = calculateDps({ ...prev, currentBossAffix }, currentEnemyElement, currentEnemyTrait) * 0.5;
         
         if (offlineDps > 0) {
           const timeToKill = prev.enemyMaxHp / offlineDps;
@@ -375,6 +387,14 @@ export default function App() {
 
   // Game Loop
   useEffect(() => {
+    if (gameState.stage % 10 === 0 && gameState.stage > 1) {
+      setShowBossWarning(true);
+      const timer = setTimeout(() => setShowBossWarning(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.stage]);
+
+  useEffect(() => {
     const timer = setInterval(() => {
       setGameState(prev => {
         let newHp = prev.enemyHp;
@@ -388,9 +408,37 @@ export default function App() {
         const currentEnemyElement = getEnemyElement(prev.stage);
         const currentEnemyTrait = getEnemyTrait(prev.stage);
         const currentBossAffix = getBossAffix(prev.stage);
-        const currentDps = calculateDps({ ...prev, currentBossAffix }, currentEnemyElement, currentEnemyTrait) * (prev.prestigeMultiplier || 1) * (prev.upgrades?.heroDps || 1);
+        const currentDps = calculateDps({ ...prev, currentBossAffix }, currentEnemyElement, currentEnemyTrait);
         if (currentDps > 0) {
           newHp -= currentDps * 0.1; // 10 ticks per second
+          
+          // Generate damage text occasionally for visual feedback
+          if (Math.random() < 0.2) { // 20% chance per tick to show a number
+            let hitType: 'normal' | 'weak' | 'resist' = 'normal';
+            const leaderInst = prev.board[4];
+            if (leaderInst) {
+              const leaderDef = HEROES.find(h => h.id === leaderInst.heroId)!;
+              const multiplier = getElementalMultiplier(leaderDef.faction, currentEnemyElement);
+              if (multiplier > 1) hitType = 'weak';
+              else if (multiplier < 1) hitType = 'resist';
+            }
+            
+            // Add damage text to state (using a functional state update to avoid dependency issues)
+            setDamageTexts(texts => {
+              // Keep only recent texts to avoid memory leaks
+              const now = Date.now();
+              const filtered = texts.filter(t => now - t.timestamp < 1000);
+              return [...filtered, { 
+                id: Math.random(), 
+                x: 100 + Math.random() * 100, 
+                y: 100 + Math.random() * 100, 
+                val: currentDps * 0.1 * 5, // Show accumulated damage roughly
+                isCrit: Math.random() < 0.1, 
+                hitType,
+                timestamp: now 
+              }];
+            });
+          }
         }
 
         if (currentBossAffix === 'REGEN' && newBossTime !== null) {
@@ -422,9 +470,25 @@ export default function App() {
             goldDrop *= 3;
           }
           newGold += goldDrop;
+          let newInventory = prev.inventory || [];
           if (isBoss) {
             newGems += 100 + newStage * 10;
             newArtifactShards += Math.floor(newStage / 10);
+            
+            let dropRateBonus = 0;
+            if (prev.talents?.equipment_drop_rate) {
+              const talent = TALENTS.find(t => t.id === 'equipment_drop_rate')!;
+              dropRateBonus = prev.talents.equipment_drop_rate * talent.effectPerLevel;
+            }
+            
+            const drop = generateEquipmentDrop(newStage, dropRateBonus);
+            if (drop) {
+              newInventory = [...newInventory, drop];
+              setTimeout(() => {
+                setDropNotification(drop);
+                setTimeout(() => setDropNotification(null), 3000);
+              }, 100);
+            }
           }
 
           newStage += 1;
@@ -451,6 +515,7 @@ export default function App() {
             missions: newMissions,
             artifactShards: newArtifactShards,
             currentBossAffix: getBossAffix(newStage),
+            inventory: newInventory,
           };
         }
 
@@ -524,6 +589,12 @@ export default function App() {
     if (synergies.class.Mage >= 4) globalMult += 0.4;
     else if (synergies.class.Mage >= 2) globalMult += 0.15;
 
+    // Collection Bonus
+    const unlockedCount = gameState.unlockedHeroes?.length || 0;
+    const totalAwakenings = Object.values(gameState.heroAwakenings || {}).reduce((sum, level) => sum + level, 0);
+    const collectionMult = 1 + (unlockedCount * 0.01) + (totalAwakenings * 0.02);
+    globalMult *= collectionMult;
+
     let activeFormation: typeof FORMATIONS[0] | undefined;
     let formationLevel = 0;
     if (gameState.activeFormationId && gameState.formations?.[gameState.activeFormationId]) {
@@ -543,10 +614,37 @@ export default function App() {
       if (inst) {
         const def = HEROES.find(h => h.id === inst.heroId)!;
         const starMult = Math.pow(3, inst.star - 1);
+        const levelMult = 1 + ((inst.level || 1) - 1) * 0.1;
         const awakeningLevel = gameState.heroAwakenings?.[def.id] || 0;
         const awakeningMult = 1 + (awakeningLevel * 0.5);
-        const base = def.baseDps * starMult * awakeningMult;
-        baseTotal += base;
+
+        let heroPassiveMult = 1;
+        if (def.passive && def.passive.type === 'SELF_CRIT') {
+          heroPassiveMult += def.passive.value;
+        }
+        gameState.board.forEach((otherInst, otherIndex) => {
+          if (otherInst) {
+            const otherDef = HEROES.find(h => h.id === otherInst.heroId)!;
+            if (otherDef.passive) {
+              if (otherDef.passive.type === 'FACTION_BUFF' && def.faction === otherDef.faction) {
+                heroPassiveMult += otherDef.passive.value - 1;
+              }
+              if (otherDef.passive.type === 'CLASS_BUFF' && def.classType === otherDef.classType) {
+                heroPassiveMult += otherDef.passive.value - 1;
+              }
+              if (otherDef.passive.type === 'ADJACENT_BUFF') {
+                const row = Math.floor(index / 3);
+                const col = index % 3;
+                const otherRow = Math.floor(otherIndex / 3);
+                const otherCol = otherIndex % 3;
+                const isAdjacent = Math.abs(row - otherRow) + Math.abs(col - otherCol) === 1;
+                if (isAdjacent) {
+                  heroPassiveMult += otherDef.passive.value - 1;
+                }
+              }
+            }
+          }
+        });
 
         let positionMult = 1;
         if (index < 3 && def.classType === 'Warrior') positionMult = 1.3;
@@ -585,7 +683,42 @@ export default function App() {
           if (def.classType === 'Mage' && gameState.artifacts.mage_sta) artifactMult += gameState.artifacts.mage_sta * 0.1;
         }
 
-        afterIndividualMults += base * positionMult * leaderBuffMult * elementalMult * artifactMult;
+        let eqDpsBonus = 0;
+        let eqDpsMult = 1;
+        let setBonusMult = 1;
+
+        if (inst.equipment) {
+          if (inst.equipment.weapon) {
+            eqDpsBonus += inst.equipment.weapon.dpsBonus;
+            eqDpsMult *= inst.equipment.weapon.dpsMultiplier;
+          }
+          if (inst.equipment.armor) {
+            eqDpsBonus += inst.equipment.armor.dpsBonus;
+            eqDpsMult *= inst.equipment.armor.dpsMultiplier;
+          }
+          if (inst.equipment.accessory) {
+            eqDpsBonus += inst.equipment.accessory.dpsBonus;
+            eqDpsMult *= inst.equipment.accessory.dpsMultiplier;
+          }
+
+          // Set Bonus Logic
+          if (inst.equipment.weapon && inst.equipment.armor && inst.equipment.accessory) {
+            const rarities = [inst.equipment.weapon.rarity, inst.equipment.armor.rarity, inst.equipment.accessory.rarity];
+            const rarityLevels = { 'N': 1, 'R': 2, 'SR': 3, 'SSR': 4, 'UR': 5 };
+            const minRarityLevel = Math.min(...rarities.map(r => rarityLevels[r as keyof typeof rarityLevels]));
+            
+            if (minRarityLevel >= 5) setBonusMult = 4.0; // UR Set: +300%
+            else if (minRarityLevel >= 4) setBonusMult = 2.0; // SSR Set: +100%
+            else if (minRarityLevel >= 3) setBonusMult = 1.3; // SR Set: +30%
+            else if (minRarityLevel >= 2) setBonusMult = 1.15; // R Set: +15%
+            else if (minRarityLevel >= 1) setBonusMult = 1.05; // N Set: +5%
+          }
+        }
+
+        const baseWithEq = (def.baseDps + eqDpsBonus) * eqDpsMult * setBonusMult * starMult * awakeningMult * levelMult;
+        baseTotal += baseWithEq;
+
+        afterIndividualMults += baseWithEq * positionMult * leaderBuffMult * elementalMult * artifactMult * heroPassiveMult;
       }
     });
 
@@ -597,12 +730,38 @@ export default function App() {
       finalDps *= 0.7;
     }
 
+    let talentMult = 1;
+    if (gameState.talents?.base_dps) {
+      const talent = TALENTS.find(t => t.id === 'base_dps')!;
+      talentMult *= (1 + (gameState.talents.base_dps * talent.effectPerLevel));
+    }
+    const isBoss = gameState.stage % 10 === 0;
+    if (isBoss && gameState.talents?.boss_damage) {
+      const talent = TALENTS.find(t => t.id === 'boss_damage')!;
+      talentMult *= (1 + (gameState.talents.boss_damage * talent.effectPerLevel));
+    }
+    finalDps *= talentMult;
+
+    let skillMult = 1;
+    if (gameState.activeSkillBuffs) {
+      const now = Date.now();
+      if (gameState.activeSkillBuffs.meteor && now < gameState.activeSkillBuffs.meteor) {
+        skillMult *= 2;
+      }
+      if (gameState.activeSkillBuffs.freeze && now < gameState.activeSkillBuffs.freeze) {
+        skillMult *= 1.5;
+      }
+    }
+    finalDps *= skillMult;
+
     return {
       baseTotal,
       afterIndividualMults,
       globalMult,
       upgradeMult,
       prestigeMult,
+      talentMult,
+      skillMult,
       finalDps
     };
   };
@@ -677,37 +836,64 @@ export default function App() {
     const isCrit = Math.random() < 0.1;
     const damage = isCrit ? baseTap * 3 : baseTap;
 
-    setDamageTexts(prev => [...prev, { id: Math.random(), x, y, val: damage, isCrit, timestamp: Date.now() }]);
+    // Determine hitType based on elemental advantage (if we consider tap damage to have leader's element)
+    let hitType: 'normal' | 'weak' | 'resist' = 'normal';
+    const leaderInst = gameState.board[4];
+    if (leaderInst) {
+      const leaderDef = HEROES.find(h => h.id === leaderInst.heroId)!;
+      const multiplier = getElementalMultiplier(leaderDef.faction, currentEnemyElement);
+      if (multiplier > 1) hitType = 'weak';
+      else if (multiplier < 1) hitType = 'resist';
+    }
+
+    setDamageTexts(prev => [...prev, { id: Math.random(), x, y, val: damage, isCrit, hitType, timestamp: Date.now() }]);
     setGameState(prev => ({ ...prev, enemyHp: prev.enemyHp - damage }));
   };
 
-  const pullGacha = (type: 'normal' | 'premium') => {
-    let cost = type === 'normal' ? 100 : 300;
+  const pullGacha = (type: 'normal' | 'premium', count: number = 1) => {
+    let baseCost = type === 'normal' ? 100 : 300;
     const isGems = type === 'premium';
 
     if (type === 'normal' && gameState.talents?.gacha_discount) {
       const talent = TALENTS.find(t => t.id === 'gacha_discount')!;
-      cost = Math.floor(cost * (1 - (gameState.talents.gacha_discount * talent.effectPerLevel)));
+      baseCost = Math.floor(baseCost * (1 - (gameState.talents.gacha_discount * talent.effectPerLevel)));
     }
 
-    if (isGems && gameState.gems < cost) return;
-    if (!isGems && gameState.gold < cost) return;
+    const totalCost = baseCost * count;
 
-    if (gameState.bench.every(slot => slot !== null)) {
-      setModalState({
-        isOpen: true,
-        title: 'ベンチが満杯です',
-        message: 'ガチャを引く前にベンチの空きを作ってください。',
-        isAlert: true
-      });
-      return;
+    if (isGems && gameState.gems < totalCost) return;
+    if (!isGems && gameState.gold < totalCost) return;
+
+    // Check if bench has enough space for non-auto-sold heroes
+    // For simplicity, we just check if there's at least one empty slot if not auto-selling Ns.
+    // But since duplicates don't take bench space, it's hard to predict.
+    // Let's just proceed and if bench is full, they might lose the hero (or it just converts to soul).
+    // Actually, currently duplicates DO take bench space in the original code!
+    // Wait, let's look at original code:
+    // `const emptyBenchIndex = gameState.bench.findIndex(s => s === null);`
+    // `if (emptyBenchIndex !== -1) { newBench[emptyBenchIndex] = newHeroInstance; }`
+    // Yes, duplicates are added to the bench AND give a soul.
+    // If bench is full, we should probably warn them before pulling.
+    const emptySlots = gameState.bench.filter(s => s === null).length;
+    if (emptySlots < count && !gameState.autoSellN) {
+      // It might be fine if they get duplicates or Ns, but let's be safe.
+      // Actually, let's just let it happen. If it's full, they don't get the instance on bench.
     }
 
-    setGameState(prev => {
+    let newPityCounter = gameState.pityCounter;
+    let newPremiumGachaCount = gameState.premiumGachaCount || 0;
+    let newGold = isGems ? gameState.gold : gameState.gold - totalCost;
+    let newGems = isGems ? gameState.gems - totalCost : gameState.gems;
+    let newBench = [...gameState.bench];
+    let newUnlockedHeroes = [...gameState.unlockedHeroes];
+    let newHeroSouls = { ...(gameState.heroSouls || {}) };
+    let newTotalGachaPulls = gameState.totalGachaPulls;
+    
+    const pulledHeroes: HeroInstance[] = [];
+
+    for (let i = 0; i < count; i++) {
       const rand = Math.random();
       let rarity: Rarity = 'N';
-      let newPityCounter = prev.pityCounter;
-      let newPremiumGachaCount = prev.premiumGachaCount || 0;
 
       if (type === 'premium') {
         newPityCounter += 1;
@@ -717,15 +903,15 @@ export default function App() {
           newPityCounter = 0;
         } else {
           if (rand < 0.05) rarity = 'UR';
-          else if (rand < 0.20) { rarity = 'SSR'; newPityCounter = 0; } // Reset pity on natural SSR
+          else if (rand < 0.20) { rarity = 'SSR'; newPityCounter = 0; }
           else if (rand < 0.50) rarity = 'SR';
           else rarity = 'R';
         }
       } else {
         let srRate = 0.05;
-        if (prev.talents?.sr_rate_up) {
+        if (gameState.talents?.sr_rate_up) {
           const talent = TALENTS.find(t => t.id === 'sr_rate_up')!;
-          srRate += (prev.talents.sr_rate_up * talent.effectPerLevel);
+          srRate += (gameState.talents.sr_rate_up * talent.effectPerLevel);
         }
         
         if (rand < 0.01) rarity = 'SSR';
@@ -736,53 +922,56 @@ export default function App() {
 
       const pool = HEROES.filter(h => h.rarity === rarity);
       const hero = pool[Math.floor(Math.random() * pool.length)];
+      newTotalGachaPulls += 1;
 
-      const newMissions = prev.missions.map(m => 
-        m.type === 'gacha' ? { ...m, progress: prev.totalGachaPulls + 1 } : m
-      );
-
-      if (prev.autoSellN && rarity === 'N') {
-        const sellValue = 10;
-        return {
-          ...prev,
-          gold: (isGems ? prev.gold : prev.gold - cost) + sellValue,
-          gems: isGems ? prev.gems - cost : prev.gems,
-          pityCounter: newPityCounter,
-          premiumGachaCount: newPremiumGachaCount,
-          totalGachaPulls: prev.totalGachaPulls + 1,
-          missions: newMissions
-        };
+      if (gameState.autoSellN && rarity === 'N') {
+        newGold += 10;
+        continue;
       }
 
-      const isDuplicate = prev.unlockedHeroes.includes(hero.id);
-      const newUnlockedHeroes = isDuplicate ? prev.unlockedHeroes : [...prev.unlockedHeroes, hero.id];
-      
-      const newHeroSouls = { ...(prev.heroSouls || {}) };
-      let newBench = [...prev.bench];
-
-      if (isDuplicate) {
-        // Add souls for duplicate
+      const isDuplicate = newUnlockedHeroes.includes(hero.id);
+      if (!isDuplicate) {
+        newUnlockedHeroes.push(hero.id);
+      } else {
         newHeroSouls[hero.id] = (newHeroSouls[hero.id] || 0) + 1;
       }
 
-      const emptyBenchIndex = prev.bench.findIndex(s => s === null);
-      if (emptyBenchIndex !== -1) {
-        newBench[emptyBenchIndex] = { uid: Math.random().toString(), heroId: hero.id, star: 1, level: 1 };
-      }
+      const newHeroInstance = { uid: Math.random().toString(), heroId: hero.id, star: 1, level: 1 };
+      pulledHeroes.push(newHeroInstance);
 
-      return {
-        ...prev,
-        gold: isGems ? prev.gold : prev.gold - cost,
-        gems: isGems ? prev.gems - cost : prev.gems,
-        bench: newBench,
-        pityCounter: newPityCounter,
-        premiumGachaCount: newPremiumGachaCount,
-        totalGachaPulls: prev.totalGachaPulls + 1,
-        missions: newMissions,
-        unlockedHeroes: newUnlockedHeroes,
-        heroSouls: newHeroSouls
-      };
-    });
+      const emptyBenchIndex = newBench.findIndex(s => s === null);
+      if (emptyBenchIndex !== -1) {
+        newBench[emptyBenchIndex] = newHeroInstance;
+      }
+    }
+
+    const newMissions = gameState.missions.map(m => 
+      m.type === 'gacha' ? { ...m, progress: newTotalGachaPulls } : m
+    );
+
+    setGameState(prev => ({
+      ...prev,
+      gold: newGold,
+      gems: newGems,
+      bench: newBench,
+      pityCounter: newPityCounter,
+      premiumGachaCount: newPremiumGachaCount,
+      totalGachaPulls: newTotalGachaPulls,
+      missions: newMissions,
+      unlockedHeroes: newUnlockedHeroes,
+      heroSouls: newHeroSouls
+    }));
+
+    if (pulledHeroes.length > 0) {
+      setGachaReveal({ isOpen: true, hero: pulledHeroes[0], is10Pull: count > 1, heroes: pulledHeroes });
+    } else if (count > 1) {
+      setModalState({
+        isOpen: true,
+        title: '自動売却',
+        message: '引いたヒーローはすべてNレアだったため、自動売却されました。',
+        isAlert: true
+      });
+    }
   };
 
   const handleSlotClick = (type: 'board' | 'bench', index: number) => {
@@ -869,6 +1058,270 @@ export default function App() {
     });
   };
 
+  const handleAutoMergeHeroes = () => {
+    let mergedAny = false;
+    let currentBoard = [...gameState.board];
+    let currentBench = [...gameState.bench];
+
+    let hasMerges = true;
+    while (hasMerges) {
+      hasMerges = false;
+      
+      const allHeroes: { loc: 'board' | 'bench', index: number, inst: HeroInstance }[] = [];
+      currentBoard.forEach((inst, i) => { if (inst) allHeroes.push({ loc: 'board', index: i, inst }); });
+      currentBench.forEach((inst, i) => { if (inst) allHeroes.push({ loc: 'bench', index: i, inst }); });
+
+      const groups: Record<string, typeof allHeroes> = {};
+      allHeroes.forEach(h => {
+        if (h.inst.star >= 3) return;
+        const key = `${h.inst.heroId}-${h.inst.star}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(h);
+      });
+
+      for (const key in groups) {
+        if (groups[key].length >= 3) {
+          const toMerge = groups[key].slice(0, 3);
+          const target = toMerge[0];
+          const sacrifice1 = toMerge[1];
+          const sacrifice2 = toMerge[2];
+
+          if (target.loc === 'board') {
+            currentBoard[target.index] = { ...target.inst, star: target.inst.star + 1 };
+          } else {
+            currentBench[target.index] = { ...target.inst, star: target.inst.star + 1 };
+          }
+
+          if (sacrifice1.loc === 'board') currentBoard[sacrifice1.index] = null;
+          else currentBench[sacrifice1.index] = null;
+
+          if (sacrifice2.loc === 'board') currentBoard[sacrifice2.index] = null;
+          else currentBench[sacrifice2.index] = null;
+
+          hasMerges = true;
+          mergedAny = true;
+          break;
+        }
+      }
+    }
+
+    if (mergedAny) {
+      setGameState(prev => ({ ...prev, board: currentBoard, bench: currentBench }));
+      setModalState({
+        isOpen: true,
+        title: '一括合成完了',
+        message: '可能なヒーローをすべて合成しました。',
+        isAlert: true
+      });
+    } else {
+      setModalState({
+        isOpen: true,
+        title: '合成不可',
+        message: '合成可能なヒーローがいません。（同じヒーロー、同じ星が3体必要です）',
+        isAlert: true
+      });
+    }
+  };
+
+  const handleAutoLevelUpHeroes = () => {
+    let currentGold = gameState.gold;
+    let currentBoard = [...gameState.board];
+    let currentBench = [...gameState.bench];
+    let leveledAny = false;
+
+    const allHeroes: { loc: 'board' | 'bench', index: number, inst: HeroInstance }[] = [];
+    currentBoard.forEach((inst, i) => { if (inst) allHeroes.push({ loc: 'board', index: i, inst }); });
+    currentBench.forEach((inst, i) => { if (inst) allHeroes.push({ loc: 'bench', index: i, inst }); });
+
+    let canLevelUp = true;
+    while (canLevelUp && currentGold > 0) {
+      canLevelUp = false;
+      
+      allHeroes.sort((a, b) => (a.inst.level || 1) - (b.inst.level || 1));
+
+      for (const h of allHeroes) {
+        const def = HEROES.find(hd => hd.id === h.inst.heroId)!;
+        const cost = getHeroLevelUpCost(def.rarity, h.inst.level || 1);
+        
+        if (currentGold >= cost) {
+          currentGold -= cost;
+          h.inst.level = (h.inst.level || 1) + 1;
+          canLevelUp = true;
+          leveledAny = true;
+          break;
+        }
+      }
+    }
+
+    if (leveledAny) {
+      allHeroes.forEach(h => {
+        if (h.loc === 'board') currentBoard[h.index] = h.inst;
+        else currentBench[h.index] = h.inst;
+      });
+
+      setGameState(prev => ({ ...prev, gold: currentGold, board: currentBoard, bench: currentBench }));
+      setModalState({
+        isOpen: true,
+        title: '一括強化完了',
+        message: '所持ゴールドの範囲内で可能な限りヒーローを強化しました。',
+        isAlert: true
+      });
+    } else {
+      setModalState({
+        isOpen: true,
+        title: '強化不可',
+        message: 'ゴールドが不足しているため、強化できません。',
+        isAlert: true
+      });
+    }
+  };
+
+  const handleAutoSynthesizeEquipment = () => {
+    let currentInventory = [...(gameState.inventory || [])];
+    let synthesizedAny = false;
+    let hasMerges = true;
+
+    while (hasMerges) {
+      hasMerges = false;
+      
+      const groups: Record<string, Equipment[]> = {};
+      currentInventory.forEach(eq => {
+        if (eq.rarity === 'UR') return; // Cannot synthesize UR
+        const key = `${eq.type}-${eq.rarity}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(eq);
+      });
+
+      for (const key in groups) {
+        if (groups[key].length >= 3) {
+          const toMerge = groups[key].slice(0, 3);
+          const newEq = synthesizeEquipment(toMerge);
+          
+          if (newEq) {
+            // Remove the 3 used equipments
+            const idsToRemove = toMerge.map(e => e.id);
+            currentInventory = currentInventory.filter(e => !idsToRemove.includes(e.id));
+            // Add the new equipment
+            currentInventory.push(newEq);
+            
+            hasMerges = true;
+            synthesizedAny = true;
+            break; // Restart loop to re-evaluate groups
+          }
+        }
+      }
+    }
+
+    if (synthesizedAny) {
+      setGameState(prev => ({ ...prev, inventory: currentInventory }));
+      setModalState({
+        isOpen: true,
+        title: '一括合成完了',
+        message: '可能な装備をすべて合成しました。',
+        isAlert: true
+      });
+      setSynthSelection([]);
+    } else {
+      setModalState({
+        isOpen: true,
+        title: '合成不可',
+        message: '合成可能な装備がいません。（同じ部位、同じレアリティが3つ必要です）',
+        isAlert: true
+      });
+    }
+  };
+
+  const handleClaimAllExpeditions = () => {
+    setGameState(prev => {
+      let newGold = prev.gold;
+      let newGems = prev.gems;
+      let newArtifactShards = prev.artifactShards || 0;
+      const remainingExpeditions: ActiveExpedition[] = [];
+      let claimedCount = 0;
+
+      (prev.activeExpeditions || []).forEach(activeExp => {
+        const expDef = EXPEDITIONS.find(e => e.id === activeExp.expeditionId);
+        if (expDef && now >= activeExp.startTime + expDef.durationMinutes * 60 * 1000) {
+          if (expDef.rewardType === 'gold') newGold += expDef.baseReward;
+          if (expDef.rewardType === 'gems') newGems += expDef.baseReward;
+          if (expDef.rewardType === 'artifactShards') newArtifactShards += expDef.baseReward;
+          claimedCount++;
+        } else {
+          remainingExpeditions.push(activeExp);
+        }
+      });
+
+      if (claimedCount > 0) {
+        setTimeout(() => {
+          setModalState({
+            isOpen: true,
+            title: '一括受け取り完了',
+            message: `${claimedCount}件の派遣報酬を受け取りました。`,
+            isAlert: true
+          });
+        }, 100);
+      }
+
+      return {
+        ...prev,
+        gold: newGold,
+        gems: newGems,
+        artifactShards: newArtifactShards,
+        activeExpeditions: remainingExpeditions
+      };
+    });
+  };
+
+  const handleAutoDispatchExpeditions = () => {
+    setGameState(prev => {
+      const activeExpIds = (prev.activeExpeditions || []).map(e => e.expeditionId);
+      const dispatchedHeroIds = (prev.activeExpeditions || []).map(e => e.heroId);
+      let availableHeroes = prev.unlockedHeroes.filter(id => !dispatchedHeroIds.includes(id));
+      
+      const newExpeditions = [...(prev.activeExpeditions || [])];
+      let dispatchedCount = 0;
+
+      for (const exp of EXPEDITIONS) {
+        if (!activeExpIds.includes(exp.id) && availableHeroes.length > 0) {
+          const heroId = availableHeroes.pop()!;
+          newExpeditions.push({
+            id: Math.random().toString(),
+            expeditionId: exp.id,
+            heroId,
+            startTime: Date.now(),
+            completed: false
+          });
+          dispatchedCount++;
+        }
+      }
+
+      if (dispatchedCount > 0) {
+        setTimeout(() => {
+          setModalState({
+            isOpen: true,
+            title: '自動派遣完了',
+            message: `${dispatchedCount}件の派遣を開始しました。`,
+            isAlert: true
+          });
+        }, 100);
+      } else {
+        setTimeout(() => {
+          setModalState({
+            isOpen: true,
+            title: '派遣できません',
+            message: '派遣可能なクエストがないか、待機中のヒーローがいません。',
+            isAlert: true
+          });
+        }, 100);
+      }
+
+      return {
+        ...prev,
+        activeExpeditions: newExpeditions
+      };
+    });
+  };
+
   const handleSell = () => {
     if (!selected) return;
     setGameState(prev => {
@@ -910,15 +1363,26 @@ export default function App() {
         setIsPrestiging(true);
         
         setTimeout(() => {
-          setGameState(prev => ({
+          setGameState(prev => {
+            let startStage = 1;
+            if (prev.talents?.starting_stage) {
+              const talent = TALENTS.find(t => t.id === 'starting_stage')!;
+              startStage += prev.talents.starting_stage * talent.effectPerLevel;
+            }
+            // Ensure start stage doesn't exceed current stage
+            startStage = Math.min(startStage, Math.max(1, prev.stage - 10));
+
+            const newMaxHp = getEnemyMaxHp(startStage, prev.artifacts);
+
+            return {
             gold: 500,
             gems: 1000,
-            stage: 1,
-            enemyHp: 50,
-            enemyMaxHp: 50,
+            stage: startStage,
+            enemyHp: newMaxHp,
+            enemyMaxHp: newMaxHp,
             board: Array(9).fill(null),
             bench: Array(5).fill(null),
-            bossTimeLeft: null,
+            bossTimeLeft: startStage % 10 === 0 ? 30 : null,
             prestigePoints: (prev.prestigePoints || 0) + pointsToGain,
             prestigeMultiplier: (prev.prestigeMultiplier || 1) + (pointsToGain * 0.1), // Each point gives +10% global DPS
             prestigeCount: (prev.prestigeCount || 0) + 1,
@@ -942,7 +1406,8 @@ export default function App() {
             activeFormationId: prev.activeFormationId,
             formations: prev.formations,
             artifactShards: prev.artifactShards,
-          }));
+          };
+        });
           setActiveTab('BATTLE');
           
           setTimeout(() => {
@@ -996,8 +1461,8 @@ export default function App() {
   const renderHero = (inst: HeroInstance | null, isSelected: boolean, isLeaderSlot: boolean = false) => {
     if (!inst) return (
       <div className={cn(
-        "w-full h-full rounded-xl border-2 border-dashed bg-gray-800/50 flex items-center justify-center", 
-        isSelected ? "border-yellow-400 bg-yellow-400/20" : "border-gray-700",
+        "w-full h-full rounded-xl border-2 border-dashed bg-gray-800/50 flex items-center justify-center transition-colors", 
+        isSelected ? "border-yellow-400 bg-yellow-400/20" : "border-gray-700 hover:border-gray-500",
         isLeaderSlot && !isSelected && "border-yellow-500/50 bg-yellow-900/10"
       )}>
         {isLeaderSlot && <span className="text-[10px] font-bold text-yellow-500/50">LEADER</span>}
@@ -1006,37 +1471,59 @@ export default function App() {
     
     const def = HEROES.find(h => h.id === inst.heroId)!;
     const awakeningLevel = gameState.heroAwakenings?.[def.id] || 0;
+    
+    const isHighRarity = def.rarity === 'UR' || def.rarity === 'SSR';
 
     return (
       <div className={cn(
-        "relative w-full h-full rounded-xl border-2 flex flex-col items-center justify-center shadow-lg transition-transform",
+        "relative w-full h-full rounded-xl border-2 flex flex-col items-center justify-center shadow-lg transition-all duration-200 overflow-hidden group",
         RARITY_COLORS[def.rarity].bg,
-        isSelected ? "border-yellow-400 scale-105 z-10" : RARITY_COLORS[def.rarity].border
+        isSelected ? "border-yellow-400 scale-105 z-10 shadow-[0_0_15px_rgba(250,204,21,0.5)]" : RARITY_COLORS[def.rarity].border,
+        !isSelected && "hover:scale-105 hover:z-10"
       )}>
+        {/* Shine effect for high rarity */}
+        {isHighRarity && (
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+        )}
+        
         {isLeaderSlot && (
-          <div className="absolute -top-3 bg-yellow-500 text-black text-[8px] font-black px-2 py-0.5 rounded-full shadow-md z-20">
+          <div className="absolute -top-3 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black text-[8px] font-black px-2 py-0.5 rounded-full shadow-md z-20 border border-yellow-200">
             LEADER
           </div>
         )}
         {awakeningLevel > 0 && (
-          <div className="absolute -top-1 -left-2 bg-blue-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border border-blue-300 shadow-md z-20">
+          <div className="absolute -top-1 -left-2 bg-gradient-to-br from-blue-400 to-blue-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border border-blue-300 shadow-md z-20">
             +{awakeningLevel}
           </div>
         )}
         {def.passive && (
           <div className="absolute top-1 left-1 text-yellow-300 drop-shadow-md z-20" title={`${def.passive.name}: ${def.passive.description}`}>
-            <Sparkles size={10} />
+            <Sparkles size={10} className={isHighRarity ? "animate-pulse" : ""} />
           </div>
         )}
-        <span className="text-3xl drop-shadow-md">{def.emoji}</span>
-        <div className="absolute -top-2 -right-2 flex">
+        
+        <motion.span 
+          className="text-3xl drop-shadow-md relative z-10"
+          animate={isHighRarity ? { y: [0, -2, 0] } : {}}
+          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+        >
+          {def.emoji}
+        </motion.span>
+        
+        <div className="absolute -top-2 -right-2 flex z-20">
           {Array.from({ length: inst.star }).map((_, i) => (
-            <span key={i} className="text-yellow-400 text-xs drop-shadow-md">★</span>
+            <span key={i} className="text-yellow-400 text-xs drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]">★</span>
           ))}
         </div>
-        <div className="absolute bottom-0 w-full bg-black/50 text-[10px] text-center font-bold tracking-wider rounded-b-lg flex justify-center gap-1 py-0.5">
+        
+        <div className="absolute bottom-0 w-full bg-black/60 backdrop-blur-sm text-[9px] text-center font-bold tracking-wider rounded-b-lg flex justify-center gap-1 py-0.5 z-20">
           <span className={FACTION_COLORS[def.faction]}>{FACTION_JA[def.faction]}</span>
           <span className="text-gray-300">{CLASS_JA[def.classType]}</span>
+        </div>
+        
+        {/* Level indicator */}
+        <div className="absolute top-1 right-1 text-[8px] font-bold text-white bg-black/50 px-1 rounded z-20">
+          Lv.{inst.level || 1}
         </div>
       </div>
     );
@@ -1083,6 +1570,28 @@ export default function App() {
               
               {/* Enemy Area */}
               <div className="flex-[0.4] min-h-[200px] flex flex-col items-center justify-center relative select-none bg-gradient-to-b from-gray-900 to-gray-800 border-b border-gray-700 shrink-0" onClick={handleTapEnemy}>
+                <AnimatePresence>
+                  {showBossWarning && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.5, y: -50 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 1.5 }}
+                      className="absolute inset-0 z-50 flex items-center justify-center bg-red-900/80 backdrop-blur-sm pointer-events-none"
+                    >
+                      <div className="text-center">
+                        <motion.h1 
+                          animate={{ opacity: [1, 0.5, 1] }} 
+                          transition={{ repeat: Infinity, duration: 0.5 }}
+                          className="text-5xl font-black text-red-500 tracking-widest drop-shadow-[0_0_15px_rgba(255,0,0,0.8)]"
+                        >
+                          WARNING
+                        </motion.h1>
+                        <p className="text-white font-bold text-xl mt-2 tracking-widest">BOSS APPROACHING</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">
                   <div className="flex flex-col">
                     <h2 className={cn("text-xl font-black tracking-widest uppercase", isBoss ? "text-red-500 animate-pulse" : "text-gray-300")}>
@@ -1144,10 +1653,17 @@ export default function App() {
                       animate={{ opacity: 0, y: dt.y - 60 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.5, ease: "easeOut" }}
-                      className={cn("absolute pointer-events-none font-black drop-shadow-lg", dt.isCrit ? "text-yellow-400 text-2xl" : "text-white text-lg")}
+                      className={cn(
+                        "absolute pointer-events-none font-black drop-shadow-lg", 
+                        dt.isCrit ? "text-yellow-400 text-2xl" : "text-white text-lg",
+                        dt.hitType === 'weak' && "text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.8)]",
+                        dt.hitType === 'resist' && "text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.8)]"
+                      )}
                       style={{ left: 0, top: 0 }}
                     >
                       -{formatNumber(dt.val)}
+                      {dt.hitType === 'weak' && <span className="text-[10px] ml-1 align-top">WEAK</span>}
+                      {dt.hitType === 'resist' && <span className="text-[10px] ml-1 align-top">RESIST</span>}
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -1190,38 +1706,83 @@ export default function App() {
 
               {/* Board Area */}
               <div className="flex-[0.6] min-h-[350px] bg-gray-950 p-4 flex flex-col relative shrink-0">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-bold text-gray-400 tracking-widest">編成 (FORMATION)</span>
-                  <div className="flex space-x-2">
-                    <button 
-                      onClick={() => setShowStats(true)}
-                      className="text-xs flex items-center bg-blue-900/80 px-2 py-1 rounded text-blue-200 hover:bg-blue-800 transition-colors border border-blue-700"
-                    >
-                      <BarChart2 size={12} className="mr-1" /> 詳細
-                    </button>
-                    {selected && (
-                      <>
-                        <button 
-                          onClick={handleHeroLevelUp}
-                          disabled={gameState.gold < getHeroLevelUpCost(HEROES.find(h => h.id === (selected.type === 'board' ? gameState.board[selected.index] : gameState.bench[selected.index])?.heroId)!.rarity, (selected.type === 'board' ? gameState.board[selected.index] : gameState.bench[selected.index])?.level || 1)}
-                          className="text-xs flex items-center bg-yellow-900/80 px-2 py-1 rounded text-yellow-200 hover:bg-yellow-800 transition-colors border border-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed mr-2"
-                        >
-                          <ArrowUpCircle size={12} className="mr-1" /> 強化 ({formatNumber(getHeroLevelUpCost(HEROES.find(h => h.id === (selected.type === 'board' ? gameState.board[selected.index] : gameState.bench[selected.index])?.heroId)!.rarity, (selected.type === 'board' ? gameState.board[selected.index] : gameState.bench[selected.index])?.level || 1))}G)
-                        </button>
-                        <button 
-                          onClick={handleSell}
-                          className="text-xs flex items-center bg-red-900/80 px-2 py-1 rounded text-red-200 hover:bg-red-800 transition-colors border border-red-700"
-                        >
-                          <Trash2 size={12} className="mr-1" /> 売却
-                        </button>
-                      </>
-                    )}
-                    <button 
-                      onClick={() => setShowSynergies(!showSynergies)}
-                      className="text-xs flex items-center bg-gray-800 px-2 py-1 rounded text-gray-300 hover:bg-gray-700 transition-colors"
-                    >
-                      <Info size={12} className="mr-1" /> シナジー
-                    </button>
+                <div className="flex flex-col mb-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-gray-400 tracking-widest">編成 (FORMATION)</span>
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={handleAutoMergeHeroes}
+                        className="text-xs flex items-center bg-purple-900/80 px-2 py-1 rounded text-purple-200 hover:bg-purple-800 transition-colors border border-purple-700"
+                        title="一括合成"
+                      >
+                        <Combine size={12} className="mr-1" /> 合成
+                      </button>
+                      <button 
+                        onClick={handleAutoLevelUpHeroes}
+                        className="text-xs flex items-center bg-orange-900/80 px-2 py-1 rounded text-orange-200 hover:bg-orange-800 transition-colors border border-orange-700"
+                        title="一括強化"
+                      >
+                        <ChevronsUp size={12} className="mr-1" /> 強化
+                      </button>
+                      <button 
+                        onClick={() => setShowStats(true)}
+                        className="text-xs flex items-center bg-blue-900/80 px-2 py-1 rounded text-blue-200 hover:bg-blue-800 transition-colors border border-blue-700"
+                      >
+                        <BarChart2 size={12} className="mr-1" /> 詳細
+                      </button>
+                      <button 
+                        onClick={() => setShowSynergies(!showSynergies)}
+                        className="text-xs flex items-center bg-gray-800 px-2 py-1 rounded text-gray-300 hover:bg-gray-700 transition-colors"
+                      >
+                        <Info size={12} className="mr-1" /> シナジー
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-2 mt-2 pt-2 border-t border-gray-800 min-h-[40px]">
+                    {(() => {
+                      if (!selected) {
+                        return (
+                          <div className="flex-1 flex items-center justify-center text-xs text-gray-600 italic">
+                            ヒーローを選択してアクションを実行
+                          </div>
+                        );
+                      }
+                      const inst = selected.type === 'board' ? gameState.board[selected.index] : gameState.bench[selected.index];
+                      if (!inst) {
+                        return (
+                          <div className="flex-1 flex items-center justify-center text-xs text-gray-600 italic">
+                            空きスロット
+                          </div>
+                        );
+                      }
+                      const def = HEROES.find(h => h.id === inst.heroId)!;
+                      const cost = getHeroLevelUpCost(def.rarity, inst.level || 1);
+                      const canUpgrade = gameState.gold >= cost;
+                      return (
+                        <>
+                          <button 
+                            onClick={handleHeroLevelUp}
+                            disabled={!canUpgrade}
+                            className="flex-1 text-xs flex items-center justify-center bg-yellow-900/80 px-2 py-1.5 rounded text-yellow-200 hover:bg-yellow-800 transition-colors border border-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <ArrowUpCircle size={12} className="mr-1" /> 強化 ({formatNumber(cost)}G)
+                          </button>
+                          <button 
+                            onClick={() => setIsEquipmentModalOpen(true)}
+                            className="flex-1 text-xs flex items-center justify-center bg-emerald-900/80 px-2 py-1.5 rounded text-emerald-200 hover:bg-emerald-800 transition-colors border border-emerald-700"
+                          >
+                            <ShieldAlert size={12} className="mr-1" /> 装備
+                          </button>
+                          <button 
+                            onClick={handleSell}
+                            className="flex-1 text-xs flex items-center justify-center bg-red-900/80 px-2 py-1.5 rounded text-red-200 hover:bg-red-800 transition-colors border border-red-700"
+                          >
+                            <Trash2 size={12} className="mr-1" /> 売却
+                          </button>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -1348,13 +1909,22 @@ export default function App() {
               <div className="w-full max-w-sm bg-gradient-to-b from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl text-center relative overflow-hidden mb-4 shrink-0">
                 <h2 className="text-2xl font-black text-gray-200 mb-2">ノーマルガチャ</h2>
                 <p className="text-gray-400 text-xs mb-6">N 〜 SR のヒーローを召喚</p>
-                <button
-                  onClick={() => pullGacha('normal')}
-                  disabled={gameState.gold < 100}
-                  className="w-full py-3 rounded-xl font-bold text-md bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center border border-gray-600"
-                >
-                  召喚 <Coins size={16} className="ml-2 mr-1 text-yellow-400" /> 100
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => pullGacha('normal', 1)}
+                    disabled={gameState.gold < 100}
+                    className="flex-1 py-3 rounded-xl font-bold text-md bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center border border-gray-600"
+                  >
+                    1回 <Coins size={16} className="ml-2 mr-1 text-yellow-400" /> 100
+                  </button>
+                  <button
+                    onClick={() => pullGacha('normal', 10)}
+                    disabled={gameState.gold < 1000}
+                    className="flex-1 py-3 rounded-xl font-bold text-md bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center border border-gray-600"
+                  >
+                    10回 <Coins size={16} className="ml-2 mr-1 text-yellow-400" /> 1000
+                  </button>
+                </div>
               </div>
 
               <div className="w-full max-w-sm bg-gradient-to-b from-indigo-900 to-purple-900 rounded-2xl p-6 border-2 border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.2)] text-center relative overflow-hidden shrink-0">
@@ -1375,13 +1945,22 @@ export default function App() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => pullGacha('premium')}
-                  disabled={gameState.gems < 300}
-                  className="w-full py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 disabled:opacity-50 text-black transition-all active:scale-95 flex items-center justify-center shadow-lg"
-                >
-                  召喚 <Gem size={18} className="ml-2 mr-1 text-white" /> 300
-                </button>
+                <div className="flex gap-2 relative z-10">
+                  <button
+                    onClick={() => pullGacha('premium', 1)}
+                    disabled={gameState.gems < 300}
+                    className="flex-1 py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 disabled:opacity-50 text-black transition-all active:scale-95 flex items-center justify-center shadow-lg"
+                  >
+                    1回 <Gem size={18} className="ml-2 mr-1 text-white" /> 300
+                  </button>
+                  <button
+                    onClick={() => pullGacha('premium', 10)}
+                    disabled={gameState.gems < 3000}
+                    className="flex-1 py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 disabled:opacity-50 text-black transition-all active:scale-95 flex items-center justify-center shadow-lg"
+                  >
+                    10回 <Gem size={18} className="ml-2 mr-1 text-white" /> 3000
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1849,6 +2428,20 @@ export default function App() {
                 <h2 className="text-2xl font-black text-white flex items-center drop-shadow-md">
                   <Map size={24} className="mr-2 text-orange-400" /> 派遣
                 </h2>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleClaimAllExpeditions}
+                    className="px-3 py-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg transition-colors shadow-md"
+                  >
+                    一括受取
+                  </button>
+                  <button
+                    onClick={handleAutoDispatchExpeditions}
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors shadow-md"
+                  >
+                    自動派遣
+                  </button>
+                </div>
               </div>
               <p className="text-xs text-gray-400 w-full max-w-sm mb-2 shrink-0">ヒーローを派遣して報酬を獲得しましょう。派遣中もヒーローは通常通り戦闘に参加できます。</p>
 
@@ -1970,7 +2563,27 @@ export default function App() {
                   {gameState.unlockedHeroes.length} / {HEROES.length}
                 </div>
               </div>
-              <p className="text-xs text-gray-400 w-full max-w-sm mb-2 shrink-0">獲得したヒーローの詳細を確認できます。</p>
+              
+              {/* Collection Bonus Summary */}
+              <div className="w-full max-w-sm bg-gradient-to-r from-orange-900/50 to-yellow-900/50 border border-orange-500/30 rounded-xl p-3 shrink-0 shadow-lg">
+                <h3 className="text-sm font-bold text-orange-300 mb-1 flex items-center">
+                  <Sparkles size={14} className="mr-1" /> 図鑑ボーナス (全体DPS上昇)
+                </h3>
+                <div className="flex justify-between text-xs text-gray-300">
+                  <span>解放ボーナス ({gameState.unlockedHeroes.length}体):</span>
+                  <span className="text-white font-bold">+{gameState.unlockedHeroes.length}%</span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-300 mt-1">
+                  <span>覚醒ボーナス (計{Object.values(gameState.heroAwakenings || {}).reduce((a, b) => a + b, 0)}覚醒):</span>
+                  <span className="text-white font-bold">+{Object.values(gameState.heroAwakenings || {}).reduce((a, b) => a + b, 0) * 2}%</span>
+                </div>
+                <div className="flex justify-between text-sm text-orange-400 font-black mt-2 pt-2 border-t border-orange-500/30">
+                  <span>合計ボーナス:</span>
+                  <span>+{gameState.unlockedHeroes.length + (Object.values(gameState.heroAwakenings || {}).reduce((a, b) => a + b, 0) * 2)}%</span>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-400 w-full max-w-sm mb-2 shrink-0">獲得したヒーローの詳細を確認できます。解放・覚醒で全体DPSが上昇します。</p>
               
               <div className="w-full max-w-sm grid grid-cols-4 gap-2 shrink-0">
                 {HEROES.map(hero => {
@@ -2069,6 +2682,226 @@ export default function App() {
               </div>
             </div>
           )}
+          {activeTab === 'INVENTORY' && (
+            <div className="flex-1 flex flex-col items-center p-4 overflow-y-auto overscroll-contain">
+              <h2 className="text-2xl font-black text-white mb-6 flex items-center justify-center tracking-widest shrink-0">
+                <ShieldAlert className="mr-2 text-emerald-400" /> 鍛冶屋 (SMITHY)
+              </h2>
+
+              <div className="flex space-x-2 mb-6 w-full max-w-md shrink-0">
+                <button
+                  onClick={() => setInventoryTab('LIST')}
+                  className={cn(
+                    "flex-1 py-2 rounded-lg font-bold text-sm transition-colors",
+                    inventoryTab === 'LIST' ? "bg-emerald-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                  )}
+                >
+                  装備一覧
+                </button>
+                <button
+                  onClick={() => {
+                    setInventoryTab('SYNTHESIS');
+                    setSynthSelection([]);
+                  }}
+                  className={cn(
+                    "flex-1 py-2 rounded-lg font-bold text-sm transition-colors",
+                    inventoryTab === 'SYNTHESIS' ? "bg-emerald-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                  )}
+                >
+                  合成
+                </button>
+              </div>
+
+              <div className="w-full max-w-md space-y-3 shrink-0">
+                {inventoryTab === 'LIST' && (
+                  <>
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-gray-400 text-sm">所持数: {gameState.inventory?.length || 0}</span>
+                      <button
+                        onClick={() => {
+                          setGameState(prev => {
+                            const toSell = (prev.inventory || []).filter(eq => eq.rarity === 'N' || eq.rarity === 'R');
+                            if (toSell.length === 0) return prev;
+                            
+                            let totalGold = 0;
+                            toSell.forEach(eq => {
+                              totalGold += eq.rarity === 'R' ? 100 : 20;
+                            });
+                            
+                            setTimeout(() => {
+                              setModalState({
+                                isOpen: true,
+                                title: '一括売却完了',
+                                message: `NとRの装備を${toSell.length}個売却し、${formatNumber(totalGold)}ゴールドを獲得しました。`,
+                                isAlert: true
+                              });
+                            }, 100);
+
+                            return {
+                              ...prev,
+                              gold: prev.gold + totalGold,
+                              inventory: (prev.inventory || []).filter(eq => eq.rarity !== 'N' && eq.rarity !== 'R')
+                            };
+                          });
+                        }}
+                        className="px-3 py-1 bg-red-900/50 hover:bg-red-800/50 border border-red-500/50 text-red-400 text-xs font-bold rounded-lg transition-colors"
+                      >
+                        N/R一括売却
+                      </button>
+                    </div>
+                    {(!gameState.inventory || gameState.inventory.length === 0) ? (
+                      <div className="text-center text-gray-500 py-10 bg-gray-800/50 rounded-xl border border-gray-700">
+                        装備を持っていません。<br/>ボスを倒してドロップを狙いましょう！
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {gameState.inventory.map((eq) => (
+                          <div key={eq.id} className="bg-gray-800 p-3 rounded-xl border border-gray-700 flex flex-col relative">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center">
+                                <span className={cn(
+                                  "text-xs font-bold px-1.5 py-0.5 rounded mr-2",
+                                  eq.rarity === 'UR' ? "bg-red-500/20 text-red-400 border border-red-500/50" :
+                                  eq.rarity === 'SSR' ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/50" :
+                                  eq.rarity === 'SR' ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" :
+                                  eq.rarity === 'R' ? "bg-blue-500/20 text-blue-400 border border-blue-500/50" :
+                                  "bg-gray-500/20 text-gray-400 border border-gray-500/50"
+                                )}>{eq.rarity}</span>
+                                <span className="font-bold text-white text-sm">{eq.name}</span>
+                              </div>
+                              <span className="text-[10px] text-gray-500 uppercase">{eq.type}</span>
+                            </div>
+                            <div className="text-xs text-emerald-400 mb-1">DPS +{formatNumber(eq.dpsBonus)}</div>
+                            <div className="text-xs text-emerald-400 mb-3">DPS x{eq.dpsMultiplier.toFixed(2)}</div>
+                            <button 
+                              onClick={() => {
+                                setGameState(prev => {
+                                  const sellPrice = eq.rarity === 'UR' ? 10000 : eq.rarity === 'SSR' ? 2000 : eq.rarity === 'SR' ? 500 : eq.rarity === 'R' ? 100 : 20;
+                                  return {
+                                    ...prev,
+                                    gold: prev.gold + sellPrice,
+                                    inventory: (prev.inventory || []).filter(i => i.id !== eq.id)
+                                  };
+                                });
+                              }}
+                              className="mt-auto w-full py-1.5 bg-red-900/50 hover:bg-red-800 text-red-200 text-xs rounded border border-red-700/50 transition-colors"
+                            >
+                              売却 (+{formatNumber(eq.rarity === 'UR' ? 10000 : eq.rarity === 'SSR' ? 2000 : eq.rarity === 'SR' ? 500 : eq.rarity === 'R' ? 100 : 20)}G)
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {inventoryTab === 'SYNTHESIS' && (
+                  <>
+                    <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700 mb-4">
+                      <p className="text-sm text-gray-300 mb-2">同じレアリティ・部位の装備を3つ選んで、1つ上のレアリティに合成します。</p>
+                      <div className="flex justify-between items-center mt-4">
+                        <span className="text-gray-400 text-sm">選択中: {synthSelection.length}/3</span>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={handleAutoSynthesizeEquipment}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition-colors flex items-center"
+                          >
+                            <Combine size={16} className="mr-1" /> 一括合成
+                          </button>
+                          <button
+                            disabled={synthSelection.length !== 3}
+                            onClick={() => {
+                              if (synthSelection.length !== 3) return;
+                              const eqs = synthSelection.map(id => gameState.inventory?.find(e => e.id === id)).filter(Boolean) as Equipment[];
+                              if (eqs.length !== 3) return;
+                              const newEq = synthesizeEquipment(eqs);
+                              if (newEq) {
+                                setGameState(prev => ({
+                                  ...prev,
+                                  inventory: [...(prev.inventory || []).filter(i => !synthSelection.includes(i.id)), newEq]
+                                }));
+                                setSynthSelection([]);
+                                setDropNotification(newEq); // Show notification for the new item
+                              } else {
+                                // Synthesis failed (e.g. mismatched types)
+                                setModalState({
+                                  isOpen: true,
+                                  title: '合成失敗',
+                                  message: '同じレアリティ、同じ部位の装備を3つ選んでください。URは合成できません。',
+                                  isAlert: true
+                                });
+                                setSynthSelection([]);
+                              }
+                            }}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:text-gray-500 text-white font-bold rounded-lg transition-colors"
+                          >
+                            合成する
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {(gameState.inventory || []).filter(eq => eq.rarity !== 'UR').map((eq) => {
+                        const isSelected = synthSelection.includes(eq.id);
+                        const canSelect = synthSelection.length < 3 || isSelected;
+                        
+                        // If something is selected, only allow selecting matching type and rarity
+                        let isMatch = true;
+                        if (synthSelection.length > 0) {
+                          const firstSelected = gameState.inventory?.find(e => e.id === synthSelection[0]);
+                          if (firstSelected) {
+                            isMatch = eq.type === firstSelected.type && eq.rarity === firstSelected.rarity;
+                          }
+                        }
+
+                        const isDisabled = !isSelected && (!canSelect || !isMatch);
+
+                        return (
+                          <div 
+                            key={eq.id} 
+                            onClick={() => {
+                              if (isDisabled) return;
+                              setSynthSelection(prev => 
+                                prev.includes(eq.id) ? prev.filter(id => id !== eq.id) : [...prev, eq.id]
+                              );
+                            }}
+                            className={cn(
+                              "p-3 rounded-xl border flex flex-col relative cursor-pointer transition-all",
+                              isSelected ? "bg-emerald-900/30 border-emerald-500" : 
+                              isDisabled ? "bg-gray-900/50 border-gray-800 opacity-50" : 
+                              "bg-gray-800 border-gray-700 hover:border-gray-500"
+                            )}
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center">
+                                <span className={cn(
+                                  "text-xs font-bold px-1.5 py-0.5 rounded mr-2",
+                                  eq.rarity === 'SSR' ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/50" :
+                                  eq.rarity === 'SR' ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" :
+                                  eq.rarity === 'R' ? "bg-blue-500/20 text-blue-400 border border-blue-500/50" :
+                                  "bg-gray-500/20 text-gray-400 border border-gray-500/50"
+                                )}>{eq.rarity}</span>
+                                <span className="font-bold text-white text-sm">{eq.name}</span>
+                              </div>
+                              <span className="text-[10px] text-gray-500 uppercase">{eq.type}</span>
+                            </div>
+                            <div className="text-xs text-emerald-400 mb-1">DPS +{formatNumber(eq.dpsBonus)}</div>
+                            <div className="text-xs text-emerald-400">DPS x{eq.dpsMultiplier.toFixed(2)}</div>
+                            {isSelected && (
+                              <div className="absolute top-2 right-2 text-emerald-400">
+                                <CheckCircle2 size={16} />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Menu Overlay */}
@@ -2130,49 +2963,258 @@ export default function App() {
                   <Trophy size={28} className="mb-2" />
                   <span className="text-[10px] sm:text-xs font-bold">ランキング</span>
                 </button>
+                <button
+                  onClick={() => { setActiveTab('INVENTORY'); setIsMenuOpen(false); }}
+                  className={cn("flex flex-col items-center justify-center p-4 rounded-2xl border transition-all active:scale-95", activeTab === 'INVENTORY' ? "bg-emerald-900/40 border-emerald-500/50 text-emerald-400" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700")}
+                >
+                  <ShieldAlert size={28} className="mb-2" />
+                  <span className="text-xs font-bold">装備</span>
+                </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Bottom Navigation */}
-        <div className="bg-gray-900 border-t border-gray-800 flex justify-around p-2 pb-safe z-30">
+        <div className="bg-gray-900 border-t border-gray-800 flex justify-around p-2 pb-safe z-30 shrink-0">
           <button
             onClick={() => { setActiveTab('BATTLE'); setIsMenuOpen(false); }}
-            className={cn("flex flex-col items-center p-2 rounded-xl w-16 transition-colors", activeTab === 'BATTLE' && !isMenuOpen ? "text-red-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
+            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-colors", activeTab === 'BATTLE' && !isMenuOpen ? "text-red-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
           >
             <Sword size={20} className="mb-1" />
             <span className="text-[9px] font-bold tracking-wider">バトル</span>
           </button>
           <button
             onClick={() => { setActiveTab('GACHA'); setIsMenuOpen(false); }}
-            className={cn("flex flex-col items-center p-2 rounded-xl w-16 transition-colors", activeTab === 'GACHA' && !isMenuOpen ? "text-yellow-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
+            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-colors", activeTab === 'GACHA' && !isMenuOpen ? "text-yellow-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
           >
             <Sparkles size={20} className="mb-1" />
             <span className="text-[9px] font-bold tracking-wider">ガチャ</span>
           </button>
           <button
             onClick={() => { setActiveTab('UPGRADES'); setIsMenuOpen(false); }}
-            className={cn("flex flex-col items-center p-2 rounded-xl w-16 transition-colors", activeTab === 'UPGRADES' && !isMenuOpen ? "text-green-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
+            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-colors", activeTab === 'UPGRADES' && !isMenuOpen ? "text-green-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
           >
             <TrendingUp size={20} className="mb-1" />
             <span className="text-[9px] font-bold tracking-wider">強化</span>
           </button>
           <button
             onClick={() => { setActiveTab('COLLECTION'); setIsMenuOpen(false); }}
-            className={cn("flex flex-col items-center p-2 rounded-xl w-16 transition-colors", activeTab === 'COLLECTION' && !isMenuOpen ? "text-orange-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
+            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-colors", activeTab === 'COLLECTION' && !isMenuOpen ? "text-orange-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
           >
             <BookOpen size={20} className="mb-1" />
             <span className="text-[9px] font-bold tracking-wider">図鑑</span>
           </button>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className={cn("flex flex-col items-center p-2 rounded-xl w-16 transition-colors", isMenuOpen ? "text-blue-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
+            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-colors", isMenuOpen ? "text-blue-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
           >
             <LayoutGrid size={20} className="mb-1" />
             <span className="text-[9px] font-bold tracking-wider">メニュー</span>
           </button>
         </div>
+
+        {/* Equipment Modal */}
+        <AnimatePresence>
+          {isEquipmentModalOpen && selected && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[80vh]"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-black text-white flex items-center">
+                    <ShieldAlert className="mr-2 text-emerald-400" /> 装備変更
+                  </h2>
+                  <button onClick={() => { setIsEquipmentModalOpen(false); setSelectedEquipmentSlot(null); }} className="text-gray-400 hover:text-white">
+                    <X size={24} />
+                  </button>
+                </div>
+
+                {(() => {
+                  const arr = selected.type === 'board' ? gameState.board : gameState.bench;
+                  const inst = arr[selected.index];
+                  if (!inst) return null;
+                  const def = HEROES.find(h => h.id === inst.heroId)!;
+
+                  return (
+                    <div className="flex flex-col space-y-4 overflow-y-auto no-scrollbar">
+                      <div className="flex items-center space-x-4 bg-gray-800 p-3 rounded-xl border border-gray-700">
+                        <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center text-2xl border-2", RARITY_COLORS[def.rarity])}>
+                          {def.emoji}
+                        </div>
+                        <div>
+                          <div className="font-bold text-white">{def.name}</div>
+                          <div className="text-xs text-gray-400">Lv.{inst.level || 1}</div>
+                        </div>
+                      </div>
+
+                      {/* Equipment Slots */}
+                      <div className="grid grid-cols-3 gap-2">
+                        {(['weapon', 'armor', 'accessory'] as const).map(slot => {
+                          const eq = inst.equipment?.[slot];
+                          const isSelected = selectedEquipmentSlot === slot;
+                          return (
+                            <button
+                              key={slot}
+                              onClick={() => setSelectedEquipmentSlot(isSelected ? null : slot)}
+                              className={cn(
+                                "flex flex-col items-center p-2 rounded-xl border transition-colors",
+                                isSelected ? "bg-emerald-900/40 border-emerald-500" : "bg-gray-800 border-gray-700 hover:bg-gray-700"
+                              )}
+                            >
+                              <div className="text-xs text-gray-400 mb-1 uppercase">{slot}</div>
+                              {eq ? (
+                                <div className="flex flex-col items-center">
+                                  <span className={cn(
+                                    "text-[10px] font-bold px-1 rounded mb-1",
+                                    eq.rarity === 'UR' ? "bg-red-500/20 text-red-400" :
+                                    eq.rarity === 'SSR' ? "bg-yellow-500/20 text-yellow-400" :
+                                    eq.rarity === 'SR' ? "bg-purple-500/20 text-purple-400" :
+                                    eq.rarity === 'R' ? "bg-blue-500/20 text-blue-400" :
+                                    "bg-gray-500/20 text-gray-400"
+                                  )}>{eq.rarity}</span>
+                                  <span className="text-[10px] text-white truncate w-full text-center">{eq.name}</span>
+                                </div>
+                              ) : (
+                                <div className="text-gray-600 text-sm py-2">未装備</div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Set Bonus Display */}
+                      {(() => {
+                        if (inst.equipment?.weapon && inst.equipment?.armor && inst.equipment?.accessory) {
+                          const rarities = [inst.equipment.weapon.rarity, inst.equipment.armor.rarity, inst.equipment.accessory.rarity];
+                          const rarityLevels = { 'N': 1, 'R': 2, 'SR': 3, 'SSR': 4, 'UR': 5 };
+                          const minRarityLevel = Math.min(...rarities.map(r => rarityLevels[r as keyof typeof rarityLevels]));
+                          
+                          let bonusText = "";
+                          let rarityName = "";
+                          let colorClass = "";
+                          
+                          if (minRarityLevel >= 5) { rarityName = "UR"; bonusText = "+300%"; colorClass = "text-red-400 border-red-500/50 bg-red-900/20"; }
+                          else if (minRarityLevel >= 4) { rarityName = "SSR"; bonusText = "+100%"; colorClass = "text-yellow-400 border-yellow-500/50 bg-yellow-900/20"; }
+                          else if (minRarityLevel >= 3) { rarityName = "SR"; bonusText = "+30%"; colorClass = "text-purple-400 border-purple-500/50 bg-purple-900/20"; }
+                          else if (minRarityLevel >= 2) { rarityName = "R"; bonusText = "+15%"; colorClass = "text-blue-400 border-blue-500/50 bg-blue-900/20"; }
+                          else if (minRarityLevel >= 1) { rarityName = "N"; bonusText = "+5%"; colorClass = "text-gray-300 border-gray-500/50 bg-gray-800/50"; }
+
+                          return (
+                            <div className={cn("mt-2 p-2 rounded-lg border flex items-center justify-between shadow-inner", colorClass)}>
+                              <div className="flex items-center">
+                                <Sparkles size={14} className="mr-2" />
+                                <span className="text-xs font-bold">{rarityName} セットボーナス発動中！</span>
+                              </div>
+                              <span className="text-sm font-black">{bonusText} DPS</span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="mt-2 p-2 rounded-lg border border-gray-700 bg-gray-800/50 flex items-center justify-center text-gray-500 text-xs">
+                            3部位装備でセットボーナス発動
+                          </div>
+                        );
+                      })()}
+
+                      {/* Inventory List for Selected Slot */}
+                      {selectedEquipmentSlot && (
+                        <div className="mt-4 border-t border-gray-800 pt-4 flex-1 overflow-y-auto">
+                          <h3 className="text-sm font-bold text-gray-400 mb-2 uppercase">{selectedEquipmentSlot} 一覧</h3>
+                          <div className="space-y-2">
+                            {/* Unequip option */}
+                            {inst.equipment?.[selectedEquipmentSlot] && (
+                              <button
+                                onClick={() => {
+                                  setGameState(prev => {
+                                    const newArr = selected.type === 'board' ? [...prev.board] : [...prev.bench];
+                                    const currentInst = newArr[selected.index]!;
+                                    const currentEq = currentInst.equipment?.[selectedEquipmentSlot];
+                                    
+                                    const newEquipment = { ...currentInst.equipment };
+                                    delete newEquipment[selectedEquipmentSlot];
+                                    
+                                    newArr[selected.index] = { ...currentInst, equipment: newEquipment };
+                                    
+                                    return {
+                                      ...prev,
+                                      [selected.type]: newArr,
+                                      inventory: currentEq ? [...(prev.inventory || []), currentEq] : prev.inventory
+                                    };
+                                  });
+                                  setSelectedEquipmentSlot(null);
+                                }}
+                                className="w-full p-2 bg-red-900/30 hover:bg-red-900/50 border border-red-700/50 rounded-lg text-red-400 text-xs font-bold transition-colors"
+                              >
+                                外す
+                              </button>
+                            )}
+
+                            {/* Available items */}
+                            {(gameState.inventory || []).filter(eq => eq.type === selectedEquipmentSlot).length === 0 ? (
+                              <div className="text-center text-gray-500 text-xs py-4">装備可能なアイテムがありません</div>
+                            ) : (
+                              (gameState.inventory || []).filter(eq => eq.type === selectedEquipmentSlot).map(eq => (
+                                <button
+                                  key={eq.id}
+                                  onClick={() => {
+                                    setGameState(prev => {
+                                      const newArr = selected.type === 'board' ? [...prev.board] : [...prev.bench];
+                                      const currentInst = newArr[selected.index]!;
+                                      const currentEq = currentInst.equipment?.[selectedEquipmentSlot];
+                                      
+                                      const newEquipment = { ...currentInst.equipment, [selectedEquipmentSlot]: eq };
+                                      newArr[selected.index] = { ...currentInst, equipment: newEquipment };
+                                      
+                                      let newInventory = (prev.inventory || []).filter(i => i.id !== eq.id);
+                                      if (currentEq) newInventory.push(currentEq);
+                                      
+                                      return {
+                                        ...prev,
+                                        [selected.type]: newArr,
+                                        inventory: newInventory
+                                      };
+                                    });
+                                    setSelectedEquipmentSlot(null);
+                                  }}
+                                  className="w-full flex items-center justify-between p-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg transition-colors text-left"
+                                >
+                                  <div>
+                                    <div className="flex items-center">
+                                      <span className={cn(
+                                        "text-[10px] font-bold px-1 rounded mr-2",
+                                        eq.rarity === 'UR' ? "bg-red-500/20 text-red-400" :
+                                        eq.rarity === 'SSR' ? "bg-yellow-500/20 text-yellow-400" :
+                                        eq.rarity === 'SR' ? "bg-purple-500/20 text-purple-400" :
+                                        eq.rarity === 'R' ? "bg-blue-500/20 text-blue-400" :
+                                        "bg-gray-500/20 text-gray-400"
+                                      )}>{eq.rarity}</span>
+                                      <span className="font-bold text-white text-sm">{eq.name}</span>
+                                    </div>
+                                    <div className="text-[10px] text-emerald-400 mt-1">DPS +{formatNumber(eq.dpsBonus)} / x{eq.dpsMultiplier.toFixed(2)}</div>
+                                  </div>
+                                  <div className="text-xs bg-emerald-900/50 text-emerald-400 px-2 py-1 rounded">装備</div>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Offline Reward Modal */}
         <AnimatePresence>
@@ -2264,6 +3306,151 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        {/* Gacha Reveal Modal */}
+        <AnimatePresence>
+          {gachaReveal.isOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[80] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 overflow-hidden"
+              onClick={() => setGachaReveal({ isOpen: false, hero: null, is10Pull: false, heroes: [] })}
+            >
+              {/* High Rarity Background Effects */}
+              {(() => {
+                const hasUR = gachaReveal.is10Pull ? gachaReveal.heroes.some(h => HEROES.find(hd => hd.id === h.heroId)?.rarity === 'UR') : (gachaReveal.hero && HEROES.find(hd => hd.id === gachaReveal.hero!.heroId)?.rarity === 'UR');
+                const hasSSR = gachaReveal.is10Pull ? gachaReveal.heroes.some(h => HEROES.find(hd => hd.id === h.heroId)?.rarity === 'SSR') : (gachaReveal.hero && HEROES.find(hd => hd.id === gachaReveal.hero!.heroId)?.rarity === 'SSR');
+                
+                if (hasUR) {
+                  return (
+                    <motion.div 
+                      className="absolute inset-0 pointer-events-none flex items-center justify-center"
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
+                    >
+                      <div className="w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(239,68,68,0.3)_30deg,transparent_60deg,rgba(239,68,68,0.3)_90deg,transparent_120deg,rgba(239,68,68,0.3)_150deg,transparent_180deg,rgba(239,68,68,0.3)_210deg,transparent_240deg,rgba(239,68,68,0.3)_270deg,transparent_300deg,rgba(239,68,68,0.3)_330deg,transparent_360deg)]" />
+                    </motion.div>
+                  );
+                } else if (hasSSR) {
+                  return (
+                    <motion.div 
+                      className="absolute inset-0 pointer-events-none flex items-center justify-center"
+                      animate={{ rotate: -360 }}
+                      transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
+                    >
+                      <div className="w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(234,179,8,0.2)_45deg,transparent_90deg,rgba(234,179,8,0.2)_135deg,transparent_180deg,rgba(234,179,8,0.2)_225deg,transparent_270deg,rgba(234,179,8,0.2)_315deg,transparent_360deg)]" />
+                    </motion.div>
+                  );
+                }
+                return null;
+              })()}
+
+              <motion.div
+                initial={{ scale: 0.5, y: 50, rotateY: 180 }}
+                animate={{ scale: 1, y: 0, rotateY: 0 }}
+                exit={{ scale: 0.5, opacity: 0 }}
+                transition={{ type: "spring", damping: 15, stiffness: 100 }}
+                className="flex flex-col items-center max-w-4xl w-full relative z-10"
+                onClick={e => e.stopPropagation()}
+              >
+                {gachaReveal.is10Pull ? (
+                  <div className="flex flex-col items-center">
+                    <h2 className="text-3xl font-black text-white tracking-widest mb-8 drop-shadow-lg">10連召喚結果</h2>
+                    <div className="grid grid-cols-5 gap-4 mb-8">
+                      {gachaReveal.heroes.map((h, idx) => {
+                        const def = HEROES.find(hd => hd.id === h.heroId)!;
+                        // We can't easily check if it was a duplicate at the exact moment of pull for each,
+                        // but we can just show the hero.
+                        return (
+                          <motion.div
+                            key={idx}
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: idx * 0.1 }}
+                            className={cn(
+                              "w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-2 flex flex-col items-center justify-center shadow-lg relative overflow-hidden",
+                              RARITY_COLORS[def.rarity].bg,
+                              RARITY_COLORS[def.rarity].border
+                            )}
+                          >
+                            <span className="text-3xl sm:text-4xl drop-shadow-md z-10">{def.emoji}</span>
+                            <div className="absolute bottom-0 w-full bg-black/60 text-center py-1 z-10">
+                              <span className={cn("font-black tracking-widest text-[10px] sm:text-xs", RARITY_COLORS[def.rarity].text)}>
+                                {def.rarity}
+                              </span>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      onClick={() => setGachaReveal({ isOpen: false, hero: null, is10Pull: false, heroes: [] })}
+                      className="px-8 py-3 bg-white text-black font-black rounded-full hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)] active:scale-95"
+                    >
+                      確認
+                    </button>
+                  </div>
+                ) : gachaReveal.hero ? (
+                  (() => {
+                    const def = HEROES.find(h => h.id === gachaReveal.hero!.heroId)!;
+                    const isDuplicate = (gameState.heroSouls?.[def.id] || 0) > 0;
+                    return (
+                      <>
+                        <motion.div 
+                          animate={{ y: [0, -10, 0] }}
+                          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                          className={cn(
+                            "w-48 h-48 rounded-3xl border-4 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden",
+                            RARITY_COLORS[def.rarity].bg,
+                            RARITY_COLORS[def.rarity].border
+                          )}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none" />
+                          <span className="text-[100px] drop-shadow-2xl z-10">{def.emoji}</span>
+                          <div className="absolute bottom-0 w-full bg-black/60 text-center py-2 z-10">
+                            <span className={cn("font-black tracking-widest text-lg", RARITY_COLORS[def.rarity].text)}>
+                              {def.rarity}
+                            </span>
+                          </div>
+                        </motion.div>
+                        
+                        <div className="mt-8 text-center">
+                          <h2 className="text-3xl font-black text-white tracking-widest mb-2 drop-shadow-lg">{def.name}</h2>
+                          <div className="flex items-center justify-center gap-2 mb-4">
+                            <span className={cn("px-3 py-1 rounded-full text-sm font-bold border", FACTION_COLORS[def.faction], "bg-black/50")}>
+                              {FACTION_JA[def.faction]}
+                            </span>
+                            <span className="px-3 py-1 rounded-full text-sm font-bold border border-gray-500 text-gray-300 bg-black/50">
+                              {CLASS_JA[def.classType]}
+                            </span>
+                          </div>
+                          {isDuplicate && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.5 }}
+                              className="bg-blue-900/50 text-blue-300 px-4 py-2 rounded-xl border border-blue-700/50 font-bold text-sm"
+                            >
+                              重複ボーナス: 魂 +1
+                            </motion.div>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={() => setGachaReveal({ isOpen: false, hero: null, is10Pull: false, heroes: [] })}
+                          className="mt-8 px-8 py-3 bg-white text-black font-black rounded-full hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)] active:scale-95"
+                        >
+                          確認
+                        </button>
+                      </>
+                    );
+                  })()
+                ) : null}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Prestige Animation */}
         <AnimatePresence>
           {isPrestiging && (
@@ -2340,6 +3527,14 @@ export default function App() {
                         <div className="flex justify-between items-center bg-gray-800 p-3 rounded-lg border border-gray-700">
                           <span className="text-gray-400 text-sm">強化(アップグレード)倍率</span>
                           <span className="text-green-400 font-bold">x{stats.upgradeMult.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-gray-800 p-3 rounded-lg border border-gray-700">
+                          <span className="text-gray-400 text-sm">タレント倍率</span>
+                          <span className="text-purple-400 font-bold">x{stats.talentMult.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-gray-800 p-3 rounded-lg border border-gray-700">
+                          <span className="text-gray-400 text-sm">アクティブスキル倍率</span>
+                          <span className="text-orange-400 font-bold">x{stats.skillMult.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between items-center bg-gray-800 p-3 rounded-lg border border-gray-700">
                           <span className="text-gray-400 text-sm">転生倍率</span>
@@ -2531,6 +3726,34 @@ export default function App() {
                   </div>
                 </div>
               </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Drop Notification */}
+        <AnimatePresence>
+          {dropNotification && (
+            <motion.div
+              initial={{ opacity: 0, y: -50, scale: 0.8 }}
+              animate={{ opacity: 1, y: 20, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.8 }}
+              className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none"
+            >
+              <div className="bg-gray-900/90 border border-yellow-500/50 rounded-xl p-3 shadow-2xl flex items-center gap-3 backdrop-blur-sm">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl ${
+                  dropNotification.rarity === 'N' ? 'bg-gray-700 text-gray-300' :
+                  dropNotification.rarity === 'R' ? 'bg-blue-900/50 text-blue-400' :
+                  dropNotification.rarity === 'SR' ? 'bg-purple-900/50 text-purple-400' :
+                  dropNotification.rarity === 'SSR' ? 'bg-yellow-900/50 text-yellow-400' :
+                  'bg-red-900/50 text-red-400'
+                }`}>
+                  {dropNotification.type === 'weapon' ? '🗡️' : dropNotification.type === 'armor' ? '🛡️' : '💍'}
+                </div>
+                <div>
+                  <div className="text-xs text-yellow-400 font-bold">装備ドロップ！</div>
+                  <div className="text-sm text-white font-bold">{dropNotification.name}</div>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

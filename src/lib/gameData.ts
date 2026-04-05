@@ -93,11 +93,28 @@ export function getElementalMultiplier(attacker: Faction, defender: Faction): nu
   return 1.0;
 }
 
+export type EquipmentType = 'weapon' | 'armor' | 'accessory';
+export type EquipmentRarity = 'N' | 'R' | 'SR' | 'SSR' | 'UR';
+
+export interface Equipment {
+  id: string; // Unique instance ID
+  type: EquipmentType;
+  rarity: EquipmentRarity;
+  name: string;
+  dpsBonus: number; // Flat DPS addition
+  dpsMultiplier: number; // Percentage DPS multiplier (e.g., 1.1 for +10%)
+}
+
 export interface HeroInstance {
   uid: string;
   heroId: string;
   star: number; // 1, 2, 3
   level?: number; // Optional for backward compatibility
+  equipment?: {
+    weapon?: Equipment;
+    armor?: Equipment;
+    accessory?: Equipment;
+  };
 }
 
 export interface Mission {
@@ -172,7 +189,7 @@ export const FORMATIONS: Formation[] = [
   { id: 'line', name: '一文字陣形', description: '中衛一列に配置: 中衛(中央列)のDPS +50%', positions: [3, 4, 5], bonus: { type: 'mid_dps', value: 1.5 } },
 ];
 
-export type TalentId = 'base_dps' | 'gold_gain' | 'offline_efficiency' | 'gacha_discount' | 'sr_rate_up' | 'boss_damage' | 'hero_level_discount';
+export type TalentId = 'base_dps' | 'gold_gain' | 'offline_efficiency' | 'gacha_discount' | 'sr_rate_up' | 'boss_damage' | 'hero_level_discount' | 'equipment_drop_rate' | 'starting_stage';
 
 export interface Talent {
   id: TalentId;
@@ -192,6 +209,8 @@ export const TALENTS: Talent[] = [
   { id: 'sr_rate_up', name: '幸運の星', description: 'ノーマルガチャのSR排出率が +0.1% 増加', maxLevel: 20, baseCost: 5, costMultiplier: 1.6, effectPerLevel: 0.001 },
   { id: 'boss_damage', name: '巨獣狩り', description: 'ボスへのダメージが +10% 増加', maxLevel: 30, baseCost: 2, costMultiplier: 1.3, effectPerLevel: 0.1 },
   { id: 'hero_level_discount', name: '教育係', description: 'ヒーローのレベルアップ費用が -2% 減少', maxLevel: 25, baseCost: 3, costMultiplier: 1.4, effectPerLevel: 0.02 },
+  { id: 'equipment_drop_rate', name: 'トレジャーハンター', description: '装備のドロップ率が +1% 増加', maxLevel: 20, baseCost: 5, costMultiplier: 1.5, effectPerLevel: 0.01 },
+  { id: 'starting_stage', name: '強者の余裕', description: '転生時の開始ステージが +1 増加', maxLevel: 50, baseCost: 10, costMultiplier: 1.8, effectPerLevel: 1 },
 ];
 
 export interface GameState {
@@ -234,6 +253,7 @@ export interface GameState {
   currentBossAffix?: BossAffix;
   activeSkillBuffs?: Record<PlayerSkillId, number>; // skillId -> timestamp when buff ends
   activeExpeditions?: ActiveExpedition[];
+  inventory?: Equipment[];
 }
 
 export interface SynergyCount {
@@ -257,6 +277,95 @@ export function getSynergies(board: (HeroInstance | null)[]): SynergyCount {
     }
   });
   return counts;
+}
+
+export function generateEquipmentDrop(stage: number, dropRateBonus: number = 0): Equipment | null {
+  // 20% chance to drop on boss kill + bonus
+  if (Math.random() > (0.2 + dropRateBonus)) return null;
+
+  const types: EquipmentType[] = ['weapon', 'armor', 'accessory'];
+  const type = types[Math.floor(Math.random() * types.length)];
+  
+  // Rarity based on stage
+  let rarity: EquipmentRarity = 'N';
+  const rand = Math.random();
+  if (stage >= 100 && rand < 0.05) rarity = 'UR';
+  else if (stage >= 50 && rand < 0.15) rarity = 'SSR';
+  else if (stage >= 30 && rand < 0.3) rarity = 'SR';
+  else if (stage >= 10 && rand < 0.5) rarity = 'R';
+
+  // Stats based on rarity
+  let dpsBonus = 0;
+  let dpsMultiplier = 1.0;
+
+  switch (rarity) {
+    case 'N': dpsBonus = 10; dpsMultiplier = 1.02; break;
+    case 'R': dpsBonus = 50; dpsMultiplier = 1.05; break;
+    case 'SR': dpsBonus = 200; dpsMultiplier = 1.1; break;
+    case 'SSR': dpsBonus = 1000; dpsMultiplier = 1.2; break;
+    case 'UR': dpsBonus = 5000; dpsMultiplier = 1.5; break;
+  }
+
+  // Scale with stage slightly
+  dpsBonus = Math.floor(dpsBonus * (1 + stage / 100));
+
+  const names = {
+    weapon: { N: '木の剣', R: '鉄の剣', SR: '鋼の剣', SSR: '勇者の剣', UR: '神剣' },
+    armor: { N: '布の服', R: '革の鎧', SR: '鉄の鎧', SSR: '勇者の鎧', UR: '神鎧' },
+    accessory: { N: '木の指輪', R: '銅の指輪', SR: '銀の指輪', SSR: '金の指輪', UR: '神の指輪' }
+  };
+
+  return {
+    id: `eq_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    type,
+    rarity,
+    name: names[type][rarity],
+    dpsBonus,
+    dpsMultiplier
+  };
+}
+
+export function synthesizeEquipment(eqs: Equipment[]): Equipment | null {
+  if (eqs.length !== 3) return null;
+  const type = eqs[0].type;
+  const rarity = eqs[0].rarity;
+  if (!eqs.every(e => e.type === type && e.rarity === rarity)) return null;
+
+  const rarities: EquipmentRarity[] = ['N', 'R', 'SR', 'SSR', 'UR'];
+  const idx = rarities.indexOf(rarity);
+  if (idx === -1 || idx === rarities.length - 1) return null; // Cannot synthesize UR
+
+  const nextRarity = rarities[idx + 1];
+
+  let dpsBonus = 0;
+  let dpsMultiplier = 1.0;
+
+  switch (nextRarity) {
+    case 'N': dpsBonus = 10; dpsMultiplier = 1.02; break;
+    case 'R': dpsBonus = 50; dpsMultiplier = 1.05; break;
+    case 'SR': dpsBonus = 200; dpsMultiplier = 1.1; break;
+    case 'SSR': dpsBonus = 1000; dpsMultiplier = 1.2; break;
+    case 'UR': dpsBonus = 5000; dpsMultiplier = 1.5; break;
+  }
+
+  // Slight boost based on the synthesized items
+  const avgBonus = (eqs[0].dpsBonus + eqs[1].dpsBonus + eqs[2].dpsBonus) / 3;
+  dpsBonus = Math.floor(dpsBonus * (1 + (avgBonus / 10000)));
+
+  const names = {
+    weapon: { N: '木の剣', R: '鉄の剣', SR: '鋼の剣', SSR: '勇者の剣', UR: '神剣' },
+    armor: { N: '布の服', R: '革の鎧', SR: '鉄の鎧', SSR: '勇者の鎧', UR: '神鎧' },
+    accessory: { N: '木の指輪', R: '銅の指輪', SR: '銀の指輪', SSR: '金の指輪', UR: '神の指輪' }
+  };
+
+  return {
+    id: `eq_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    type,
+    rarity: nextRarity,
+    name: names[type][nextRarity],
+    dpsBonus,
+    dpsMultiplier
+  };
 }
 
 export type EnemyTrait = 'NONE' | 'ARMORED' | 'RESISTANT' | 'EVASIVE';
@@ -346,6 +455,12 @@ export function calculateDps(gameState: GameState, enemyElement?: Faction, enemy
       if (effect.type === 'CLASS_DPS' && effect.target) classArtifactMult[effect.target] = effect.value;
     }
   });
+
+  // Collection Bonus
+  const unlockedCount = gameState.unlockedHeroes?.length || 0;
+  const totalAwakenings = Object.values(gameState.heroAwakenings || {}).reduce((sum, level) => sum + level, 0);
+  const collectionMult = 1 + (unlockedCount * 0.01) + (totalAwakenings * 0.02);
+  globalMult *= collectionMult;
 
   // Formation Bonus
   let activeFormation: Formation | undefined;
@@ -488,12 +603,52 @@ export function calculateDps(gameState: GameState, enemyElement?: Faction, enemy
         if (def.classType === 'Mage' && artifacts.mage_sta) artifactMult += artifacts.mage_sta * 0.1;
       }
 
-      totalDps += def.baseDps * levelMult * starMult * globalMult * positionMult * leaderBuffMult * elementalMult * artifactMult * awakeningMult * heroPassiveMult;
+      // Equipment Bonuses
+      let eqDpsBonus = 0;
+      let eqDpsMult = 1;
+      let setBonusMult = 1;
+
+      if (inst.equipment) {
+        if (inst.equipment.weapon) {
+          eqDpsBonus += inst.equipment.weapon.dpsBonus;
+          eqDpsMult *= inst.equipment.weapon.dpsMultiplier;
+        }
+        if (inst.equipment.armor) {
+          eqDpsBonus += inst.equipment.armor.dpsBonus;
+          eqDpsMult *= inst.equipment.armor.dpsMultiplier;
+        }
+        if (inst.equipment.accessory) {
+          eqDpsBonus += inst.equipment.accessory.dpsBonus;
+          eqDpsMult *= inst.equipment.accessory.dpsMultiplier;
+        }
+
+        // Set Bonus Logic
+        if (inst.equipment.weapon && inst.equipment.armor && inst.equipment.accessory) {
+          const rarities = [inst.equipment.weapon.rarity, inst.equipment.armor.rarity, inst.equipment.accessory.rarity];
+          const rarityLevels = { 'N': 1, 'R': 2, 'SR': 3, 'SSR': 4, 'UR': 5 };
+          const minRarityLevel = Math.min(...rarities.map(r => rarityLevels[r as keyof typeof rarityLevels]));
+          
+          if (minRarityLevel >= 5) setBonusMult = 4.0; // UR Set: +300%
+          else if (minRarityLevel >= 4) setBonusMult = 2.0; // SSR Set: +100%
+          else if (minRarityLevel >= 3) setBonusMult = 1.3; // SR Set: +30%
+          else if (minRarityLevel >= 2) setBonusMult = 1.15; // R Set: +15%
+          else if (minRarityLevel >= 1) setBonusMult = 1.05; // N Set: +5%
+        }
+      }
+
+      const baseDpsWithEq = (def.baseDps + eqDpsBonus) * eqDpsMult * setBonusMult;
+
+      totalDps += baseDpsWithEq * levelMult * starMult * globalMult * positionMult * leaderBuffMult * elementalMult * artifactMult * awakeningMult * heroPassiveMult;
     }
   });
 
   if (enemyTrait === 'EVASIVE' || gameState.currentBossAffix === 'EVASIVE') {
     totalDps *= 0.7; // 全体DPS 30%低下
+  }
+
+  // Upgrades Multiplier
+  if (gameState.upgrades?.heroDps) {
+    totalDps *= gameState.upgrades.heroDps;
   }
 
   // Prestige Multiplier
