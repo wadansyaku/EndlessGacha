@@ -1,8 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700;800&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
 
 body {
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
+  font-family: var(--font-sans);
 }
 
 /* Prevent pull-to-refresh on mobile */
@@ -11,10 +18,32 @@ html, body {
   height: 100%;
   width: 100%;
   position: fixed;
+  background-color: #030712; /* gray-950 */
 }
 
 #root {
   height: 100%;
   width: 100%;
   overflow: hidden;
+}
+
+/* Custom Utilities */
+.glass-panel {
+  background: rgba(17, 24, 39, 0.7); /* gray-900 with opacity */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.text-glow {
+  text-shadow: 0 0 10px currentColor;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

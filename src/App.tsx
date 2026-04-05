@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Sword, Sparkles, Coins, Gem, Clock, Info, Trash2, ArrowUpCircle, TrendingUp, ScrollText, Target, Crown, BookOpen, Settings, Trophy, CloudUpload, CloudDownload, LogOut, LogIn, BarChart2, X, HelpCircle, CheckCircle2, Zap, ShieldAlert, Crosshair, Map, LayoutGrid, Combine, ChevronsUp } from 'lucide-react';
 import { cn, formatNumber } from './lib/utils';
 import { auth, db, loginWithGoogle, logout, handleFirestoreError, OperationType } from './lib/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs, serverTimestamp } from 'firebase/firestore';
 import {
   GameState,
@@ -1461,11 +1461,11 @@ export default function App() {
   const renderHero = (inst: HeroInstance | null, isSelected: boolean, isLeaderSlot: boolean = false) => {
     if (!inst) return (
       <div className={cn(
-        "w-full h-full rounded-xl border-2 border-dashed bg-gray-800/50 flex items-center justify-center transition-colors", 
-        isSelected ? "border-yellow-400 bg-yellow-400/20" : "border-gray-700 hover:border-gray-500",
-        isLeaderSlot && !isSelected && "border-yellow-500/50 bg-yellow-900/10"
+        "w-full h-full rounded-xl border-2 border-dashed bg-gray-900/40 flex items-center justify-center transition-all duration-300", 
+        isSelected ? "border-yellow-400/80 bg-yellow-400/10 shadow-[inset_0_0_15px_rgba(250,204,21,0.2)]" : "border-gray-700/50 hover:border-gray-500/80 hover:bg-gray-800/40",
+        isLeaderSlot && !isSelected && "border-yellow-500/30 bg-yellow-900/10"
       )}>
-        {isLeaderSlot && <span className="text-[10px] font-bold text-yellow-500/50">LEADER</span>}
+        {isLeaderSlot && <span className="text-[10px] font-bold text-yellow-500/40 font-mono tracking-widest">LEADER</span>}
       </div>
     );
     
@@ -1476,53 +1476,53 @@ export default function App() {
 
     return (
       <div className={cn(
-        "relative w-full h-full rounded-xl border-2 flex flex-col items-center justify-center shadow-lg transition-all duration-200 overflow-hidden group",
+        "relative w-full h-full rounded-xl border-2 flex flex-col items-center justify-center shadow-lg transition-all duration-300 overflow-hidden group",
         RARITY_COLORS[def.rarity].bg,
-        isSelected ? "border-yellow-400 scale-105 z-10 shadow-[0_0_15px_rgba(250,204,21,0.5)]" : RARITY_COLORS[def.rarity].border,
-        !isSelected && "hover:scale-105 hover:z-10"
+        isSelected ? "border-yellow-400 scale-105 z-10 shadow-[0_0_20px_rgba(250,204,21,0.6)]" : RARITY_COLORS[def.rarity].border,
+        !isSelected && "hover:scale-[1.02] hover:z-10 hover:shadow-xl"
       )}>
         {/* Shine effect for high rarity */}
         {isHighRarity && (
-          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none transform -translate-x-full group-hover:translate-x-full" />
         )}
         
         {isLeaderSlot && (
-          <div className="absolute -top-3 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black text-[8px] font-black px-2 py-0.5 rounded-full shadow-md z-20 border border-yellow-200">
+          <div className="absolute -top-2.5 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black text-[8px] font-black px-2 py-0.5 rounded-full shadow-md z-20 border border-yellow-200 font-mono tracking-wider">
             LEADER
           </div>
         )}
         {awakeningLevel > 0 && (
-          <div className="absolute -top-1 -left-2 bg-gradient-to-br from-blue-400 to-blue-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border border-blue-300 shadow-md z-20">
+          <div className="absolute -top-1.5 -left-1.5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border border-blue-300 shadow-md z-20 font-mono">
             +{awakeningLevel}
           </div>
         )}
         {def.passive && (
           <div className="absolute top-1 left-1 text-yellow-300 drop-shadow-md z-20" title={`${def.passive.name}: ${def.passive.description}`}>
-            <Sparkles size={10} className={isHighRarity ? "animate-pulse" : ""} />
+            <Sparkles size={12} className={isHighRarity ? "animate-pulse text-yellow-200" : ""} />
           </div>
         )}
         
         <motion.span 
-          className="text-3xl drop-shadow-md relative z-10"
-          animate={isHighRarity ? { y: [0, -2, 0] } : {}}
-          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+          className={cn("text-3xl drop-shadow-lg relative z-10", isHighRarity && "drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]")}
+          animate={isHighRarity ? { y: [0, -3, 0], scale: [1, 1.05, 1] } : {}}
+          transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
         >
           {def.emoji}
         </motion.span>
         
-        <div className="absolute -top-2 -right-2 flex z-20">
+        <div className="absolute -top-1.5 -right-1.5 flex z-20 bg-black/40 rounded-full px-1 backdrop-blur-sm border border-gray-700/50">
           {Array.from({ length: inst.star }).map((_, i) => (
-            <span key={i} className="text-yellow-400 text-xs drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]">★</span>
+            <span key={i} className="text-yellow-400 text-[10px] drop-shadow-[0_0_3px_rgba(250,204,21,0.8)]">★</span>
           ))}
         </div>
         
-        <div className="absolute bottom-0 w-full bg-black/60 backdrop-blur-sm text-[9px] text-center font-bold tracking-wider rounded-b-lg flex justify-center gap-1 py-0.5 z-20">
+        <div className="absolute bottom-0 w-full bg-black/70 backdrop-blur-md text-[9px] text-center font-bold tracking-wider flex justify-center gap-1.5 py-0.5 z-20 border-t border-gray-700/50">
           <span className={FACTION_COLORS[def.faction]}>{FACTION_JA[def.faction]}</span>
           <span className="text-gray-300">{CLASS_JA[def.classType]}</span>
         </div>
         
         {/* Level indicator */}
-        <div className="absolute top-1 right-1 text-[8px] font-bold text-white bg-black/50 px-1 rounded z-20">
+        <div className="absolute top-1 right-1 text-[8px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded shadow-sm z-20 font-mono border border-gray-700/50">
           Lv.{inst.level || 1}
         </div>
       </div>
@@ -1538,25 +1538,34 @@ export default function App() {
   }
 
   return (
-    <div className="w-full h-full bg-gray-950 flex justify-center overflow-hidden font-sans overscroll-none">
-      <div className="w-full max-w-md h-full bg-gray-900 text-white flex flex-col relative shadow-2xl overflow-hidden">
+    <div className="w-full h-full bg-gray-950 flex justify-center overflow-hidden font-sans overscroll-none relative">
+      {/* Background ambient effects */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-900/20 blur-[100px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-fuchsia-900/20 blur-[100px]" />
+      </div>
+
+      <div className="w-full max-w-md h-full bg-gray-950/80 text-white flex flex-col relative shadow-2xl overflow-hidden border-x border-gray-800/50">
         
-        {/* Header */}
-        <div className="bg-gray-800 p-3 shadow-md z-20">
+        {/* Header - Glassmorphism */}
+        <div className="glass-panel p-3 z-20 border-b-0 rounded-b-2xl mx-2 mt-2 shadow-lg">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center text-yellow-400 font-bold text-sm">
-                <Coins size={14} className="mr-1" /> {formatNumber(gameState.gold)}
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center bg-gray-900/80 px-3 py-1.5 rounded-full border border-gray-700/50 shadow-inner">
+                <Coins size={14} className="mr-1.5 text-yellow-400" /> 
+                <span className="text-yellow-400 font-bold text-sm font-mono tracking-tight">{formatNumber(gameState.gold)}</span>
               </div>
-              <div className="flex items-center text-blue-400 font-bold text-sm">
-                <Gem size={14} className="mr-1" /> {formatNumber(gameState.gems)}
+              <div className="flex items-center bg-gray-900/80 px-3 py-1.5 rounded-full border border-gray-700/50 shadow-inner">
+                <Gem size={14} className="mr-1.5 text-cyan-400" /> 
+                <span className="text-cyan-400 font-bold text-sm font-mono tracking-tight">{formatNumber(gameState.gems)}</span>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="text-xs text-gray-300 font-bold bg-gray-900 px-2 py-1 rounded-md border border-gray-700">
-                DPS: {formatNumber(dps)}
+              <div className="text-xs text-emerald-400 font-bold bg-emerald-950/50 px-2.5 py-1.5 rounded-full border border-emerald-800/50 font-mono shadow-inner flex items-center">
+                <TrendingUp size={12} className="mr-1" />
+                {formatNumber(dps)}
               </div>
-              <button onClick={() => setIsSettingsOpen(true)} className="p-1 rounded-md bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors">
+              <button onClick={() => setIsSettingsOpen(true)} className="p-1.5 rounded-full bg-gray-800/80 hover:bg-gray-700 text-gray-300 transition-colors border border-gray-700/50">
                 <Settings size={16} />
               </button>
             </div>
@@ -1564,60 +1573,66 @@ export default function App() {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto overscroll-contain relative flex flex-col">
+        <div className="flex-1 overflow-y-auto hide-scrollbar relative flex flex-col mt-2">
           {activeTab === 'BATTLE' && (
             <div className="flex-1 flex flex-col">
               
               {/* Enemy Area */}
-              <div className="flex-[0.4] min-h-[200px] flex flex-col items-center justify-center relative select-none bg-gradient-to-b from-gray-900 to-gray-800 border-b border-gray-700 shrink-0" onClick={handleTapEnemy}>
+              <div className="flex-[0.4] min-h-[200px] flex flex-col items-center justify-center relative select-none bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 border-b border-gray-800 shrink-0 overflow-hidden" onClick={handleTapEnemy}>
+                {/* Ambient glow behind enemy */}
+                <div className={cn(
+                  "absolute inset-0 opacity-20 blur-3xl transition-colors duration-1000",
+                  isBoss ? "bg-red-500" : "bg-cyan-500"
+                )} />
+
                 <AnimatePresence>
                   {showBossWarning && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.5, y: -50 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 1.5 }}
-                      className="absolute inset-0 z-50 flex items-center justify-center bg-red-900/80 backdrop-blur-sm pointer-events-none"
+                      className="absolute inset-0 z-50 flex items-center justify-center bg-red-950/90 backdrop-blur-md pointer-events-none"
                     >
                       <div className="text-center">
                         <motion.h1 
-                          animate={{ opacity: [1, 0.5, 1] }} 
+                          animate={{ opacity: [1, 0.5, 1], scale: [1, 1.05, 1] }} 
                           transition={{ repeat: Infinity, duration: 0.5 }}
-                          className="text-5xl font-black text-red-500 tracking-widest drop-shadow-[0_0_15px_rgba(255,0,0,0.8)]"
+                          className="text-5xl font-black text-red-500 tracking-widest drop-shadow-[0_0_20px_rgba(255,0,0,1)] font-mono"
                         >
                           WARNING
                         </motion.h1>
-                        <p className="text-white font-bold text-xl mt-2 tracking-widest">BOSS APPROACHING</p>
+                        <p className="text-red-200 font-bold text-xl mt-2 tracking-widest font-mono">BOSS APPROACHING</p>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">
+                <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none z-10">
                   <div className="flex flex-col">
-                    <h2 className={cn("text-xl font-black tracking-widest uppercase", isBoss ? "text-red-500 animate-pulse" : "text-gray-300")}>
+                    <h2 className={cn("text-2xl font-black tracking-widest uppercase font-mono text-glow", isBoss ? "text-red-500 animate-pulse" : "text-gray-300")}>
                       {isBoss ? 'BOSS' : `STAGE ${gameState.stage}`}
                     </h2>
-                    <div className="flex items-center gap-2">
-                      <span className={cn("text-xs font-bold uppercase", FACTION_COLORS[currentEnemyElement])}>
-                        {FACTION_JA[currentEnemyElement]}属性
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className={cn("text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border shadow-sm", FACTION_COLORS[currentEnemyElement].replace('text-', 'bg-').replace('400', '900/50').replace('500', '900/50'), FACTION_COLORS[currentEnemyElement])}>
+                        {FACTION_JA[currentEnemyElement]}
                       </span>
                       {currentEnemyTrait !== 'NONE' && (
-                        <span className="text-[10px] bg-purple-500/20 text-purple-400 px-1 rounded border border-purple-500/50">
+                        <span className="text-[10px] bg-purple-900/50 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/50 shadow-sm">
                           {TRAIT_JA[currentEnemyTrait]}
                         </span>
                       )}
                       {currentBossAffix !== 'NONE' && (
-                        <span className="text-[10px] bg-red-500/20 text-red-400 px-1 rounded border border-red-500/50">
+                        <span className="text-[10px] bg-red-900/50 text-red-300 px-1.5 py-0.5 rounded border border-red-500/50 shadow-sm">
                           {BOSS_AFFIX_JA[currentBossAffix]}
                         </span>
                       )}
-                      {elementalAdvantage > 1 && <span className="text-[10px] bg-red-500/20 text-red-400 px-1 rounded border border-red-500/50">WEAK</span>}
-                      {elementalAdvantage < 1 && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1 rounded border border-blue-500/50">RESIST</span>}
+                      {elementalAdvantage > 1 && <span className="text-[10px] bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded border border-red-500/50 font-bold animate-pulse">WEAK</span>}
+                      {elementalAdvantage < 1 && <span className="text-[10px] bg-blue-900/50 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/50 font-bold">RESIST</span>}
                     </div>
                   </div>
                   {gameState.bossTimeLeft !== null && (
-                    <div className="flex items-center text-red-400 font-bold bg-red-900/30 px-2 py-1 rounded-md border border-red-900/50">
-                      <Clock size={14} className="mr-1 animate-pulse" />
+                    <div className="flex items-center text-red-400 font-bold bg-red-950/80 px-3 py-1.5 rounded-lg border border-red-900/50 shadow-inner font-mono text-lg">
+                      <Clock size={16} className="mr-1.5 animate-pulse" />
                       {Math.ceil(gameState.bossTimeLeft)}s
                     </div>
                   )}
@@ -1627,20 +1642,20 @@ export default function App() {
                   key={gameState.stage}
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="text-[80px] cursor-pointer drop-shadow-[0_0_20px_rgba(255,255,255,0.1)] mt-4"
+                  whileTap={{ scale: 0.9, rotate: (Math.random() - 0.5) * 20 }}
+                  className="text-[90px] cursor-pointer drop-shadow-[0_0_30px_rgba(255,255,255,0.15)] mt-6 z-10 relative"
                 >
                   {enemyEmoji}
                 </motion.div>
 
-                <div className="w-2/3 max-w-xs mt-6 bg-gray-800 rounded-full h-4 border border-gray-600 overflow-hidden relative pointer-events-none">
+                <div className="w-3/4 max-w-xs mt-8 bg-gray-950 rounded-full h-5 border border-gray-700 overflow-hidden relative pointer-events-none shadow-inner z-10">
                   <motion.div
-                    className={cn("h-full", isBoss ? "bg-red-500" : "bg-green-500")}
+                    className={cn("h-full", isBoss ? "bg-gradient-to-r from-red-700 to-red-500" : "bg-gradient-to-r from-emerald-700 to-emerald-400")}
                     initial={{ width: '100%' }}
                     animate={{ width: `${hpPercent}%` }}
-                    transition={{ duration: 0.1 }}
+                    transition={{ type: "spring", bounce: 0, duration: 0.2 }}
                   />
-                  <div className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-white drop-shadow-md tracking-wider">
+                  <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white drop-shadow-md tracking-widest font-mono">
                     {formatNumber(gameState.enemyHp)} / {formatNumber(gameState.enemyMaxHp)}
                   </div>
                 </div>
@@ -1649,27 +1664,27 @@ export default function App() {
                   {damageTexts.map(dt => (
                     <motion.div
                       key={dt.id}
-                      initial={{ opacity: 1, y: dt.y, x: dt.x, scale: dt.isCrit ? 1.5 : 1 }}
-                      animate={{ opacity: 0, y: dt.y - 60 }}
+                      initial={{ opacity: 1, y: dt.y, x: dt.x, scale: dt.isCrit ? 2 : 1 }}
+                      animate={{ opacity: 0, y: dt.y - 80, x: dt.x + (Math.random() - 0.5) * 40 }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.5, ease: "easeOut" }}
+                      transition={{ duration: 0.6, ease: "easeOut" }}
                       className={cn(
-                        "absolute pointer-events-none font-black drop-shadow-lg", 
-                        dt.isCrit ? "text-yellow-400 text-2xl" : "text-white text-lg",
-                        dt.hitType === 'weak' && "text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.8)]",
-                        dt.hitType === 'resist' && "text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.8)]"
+                        "absolute pointer-events-none font-black drop-shadow-lg font-mono z-20", 
+                        dt.isCrit ? "text-yellow-400 text-3xl text-glow" : "text-white text-xl",
+                        dt.hitType === 'weak' && "text-red-400 drop-shadow-[0_0_10px_rgba(248,113,113,0.8)]",
+                        dt.hitType === 'resist' && "text-blue-400 drop-shadow-[0_0_10px_rgba(96,165,250,0.8)]"
                       )}
                       style={{ left: 0, top: 0 }}
                     >
                       -{formatNumber(dt.val)}
-                      {dt.hitType === 'weak' && <span className="text-[10px] ml-1 align-top">WEAK</span>}
-                      {dt.hitType === 'resist' && <span className="text-[10px] ml-1 align-top">RESIST</span>}
+                      {dt.hitType === 'weak' && <span className="text-[10px] ml-1 align-top text-red-300">WEAK</span>}
+                      {dt.hitType === 'resist' && <span className="text-[10px] ml-1 align-top text-blue-300">RESIST</span>}
                     </motion.div>
                   ))}
                 </AnimatePresence>
 
                 {/* Player Skills Overlay */}
-                <div className="absolute bottom-4 right-4 flex gap-2">
+                <div className="absolute bottom-4 right-4 flex gap-2 z-20">
                   {PLAYER_SKILLS.map(skill => {
                     const level = gameState.activeSkills?.[skill.id] || 0;
                     if (level === 0) return null;
@@ -1688,13 +1703,17 @@ export default function App() {
                         }}
                         disabled={isOnCooldown}
                         className={cn(
-                          "w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-lg border-2 transition-transform active:scale-95 relative overflow-hidden",
-                          isOnCooldown ? "bg-gray-800 border-gray-600 opacity-50 cursor-not-allowed" : "bg-blue-600 border-blue-400 hover:bg-blue-500"
+                          "w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-[0_0_15px_rgba(0,0,0,0.5)] border-2 transition-all active:scale-95 relative overflow-hidden backdrop-blur-sm",
+                          isOnCooldown 
+                            ? "bg-gray-900/80 border-gray-700 opacity-60 cursor-not-allowed grayscale" 
+                            : "bg-gradient-to-br from-blue-600/90 to-indigo-800/90 border-blue-400/50 hover:border-blue-300 hover:shadow-[0_0_20px_rgba(59,130,246,0.6)]"
                         )}
                       >
-                        {skill.id === 'meteor' ? '☄️' : skill.id === 'freeze' ? '❄️' : '💰'}
+                        <span className={cn(!isOnCooldown && "drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]")}>
+                          {skill.id === 'meteor' ? '☄️' : skill.id === 'freeze' ? '❄️' : '💰'}
+                        </span>
                         {isOnCooldown && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-bold text-xs">
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white font-bold text-sm font-mono backdrop-blur-[2px]">
                             {remainingCd}s
                           </div>
                         )}
@@ -1706,44 +1725,44 @@ export default function App() {
 
               {/* Board Area */}
               <div className="flex-[0.6] min-h-[350px] bg-gray-950 p-4 flex flex-col relative shrink-0">
-                <div className="flex flex-col mb-2">
+                <div className="flex flex-col mb-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-gray-400 tracking-widest">編成 (FORMATION)</span>
-                    <div className="flex space-x-2">
+                    <span className="text-xs font-bold text-gray-400 tracking-widest font-mono">編成 (FORMATION)</span>
+                    <div className="flex space-x-1.5">
                       <button 
                         onClick={handleAutoMergeHeroes}
-                        className="text-xs flex items-center bg-purple-900/80 px-2 py-1 rounded text-purple-200 hover:bg-purple-800 transition-colors border border-purple-700"
+                        className="text-[10px] flex items-center bg-purple-950/80 px-2 py-1 rounded-md text-purple-300 hover:bg-purple-900 transition-colors border border-purple-800/50 shadow-sm font-bold"
                         title="一括合成"
                       >
                         <Combine size={12} className="mr-1" /> 合成
                       </button>
                       <button 
                         onClick={handleAutoLevelUpHeroes}
-                        className="text-xs flex items-center bg-orange-900/80 px-2 py-1 rounded text-orange-200 hover:bg-orange-800 transition-colors border border-orange-700"
+                        className="text-[10px] flex items-center bg-orange-950/80 px-2 py-1 rounded-md text-orange-300 hover:bg-orange-900 transition-colors border border-orange-800/50 shadow-sm font-bold"
                         title="一括強化"
                       >
                         <ChevronsUp size={12} className="mr-1" /> 強化
                       </button>
                       <button 
                         onClick={() => setShowStats(true)}
-                        className="text-xs flex items-center bg-blue-900/80 px-2 py-1 rounded text-blue-200 hover:bg-blue-800 transition-colors border border-blue-700"
+                        className="text-[10px] flex items-center bg-blue-950/80 px-2 py-1 rounded-md text-blue-300 hover:bg-blue-900 transition-colors border border-blue-800/50 shadow-sm font-bold"
                       >
                         <BarChart2 size={12} className="mr-1" /> 詳細
                       </button>
                       <button 
                         onClick={() => setShowSynergies(!showSynergies)}
-                        className="text-xs flex items-center bg-gray-800 px-2 py-1 rounded text-gray-300 hover:bg-gray-700 transition-colors"
+                        className="text-[10px] flex items-center bg-gray-800/80 px-2 py-1 rounded-md text-gray-300 hover:bg-gray-700 transition-colors border border-gray-700/50 shadow-sm font-bold"
                       >
                         <Info size={12} className="mr-1" /> シナジー
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex space-x-2 mt-2 pt-2 border-t border-gray-800 min-h-[40px]">
+                  <div className="flex space-x-2 mt-3 pt-3 border-t border-gray-800/50 min-h-[44px]">
                     {(() => {
                       if (!selected) {
                         return (
-                          <div className="flex-1 flex items-center justify-center text-xs text-gray-600 italic">
+                          <div className="flex-1 flex items-center justify-center text-xs text-gray-600 italic font-mono bg-gray-900/30 rounded-lg border border-gray-800/30">
                             ヒーローを選択してアクションを実行
                           </div>
                         );
@@ -1751,7 +1770,7 @@ export default function App() {
                       const inst = selected.type === 'board' ? gameState.board[selected.index] : gameState.bench[selected.index];
                       if (!inst) {
                         return (
-                          <div className="flex-1 flex items-center justify-center text-xs text-gray-600 italic">
+                          <div className="flex-1 flex items-center justify-center text-xs text-gray-600 italic font-mono bg-gray-900/30 rounded-lg border border-gray-800/30">
                             空きスロット
                           </div>
                         );
@@ -1764,21 +1783,21 @@ export default function App() {
                           <button 
                             onClick={handleHeroLevelUp}
                             disabled={!canUpgrade}
-                            className="flex-1 text-xs flex items-center justify-center bg-yellow-900/80 px-2 py-1.5 rounded text-yellow-200 hover:bg-yellow-800 transition-colors border border-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 text-xs flex items-center justify-center bg-yellow-950/80 px-2 py-1.5 rounded-lg text-yellow-300 hover:bg-yellow-900 transition-colors border border-yellow-700/50 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-bold"
                           >
-                            <ArrowUpCircle size={12} className="mr-1" /> 強化 ({formatNumber(cost)}G)
+                            <ArrowUpCircle size={14} className="mr-1.5" /> 強化 <span className="ml-1 font-mono text-[10px] opacity-80">({formatNumber(cost)}G)</span>
                           </button>
                           <button 
                             onClick={() => setIsEquipmentModalOpen(true)}
-                            className="flex-1 text-xs flex items-center justify-center bg-emerald-900/80 px-2 py-1.5 rounded text-emerald-200 hover:bg-emerald-800 transition-colors border border-emerald-700"
+                            className="flex-1 text-xs flex items-center justify-center bg-emerald-950/80 px-2 py-1.5 rounded-lg text-emerald-300 hover:bg-emerald-900 transition-colors border border-emerald-700/50 shadow-sm font-bold"
                           >
-                            <ShieldAlert size={12} className="mr-1" /> 装備
+                            <ShieldAlert size={14} className="mr-1.5" /> 装備
                           </button>
                           <button 
                             onClick={handleSell}
-                            className="flex-1 text-xs flex items-center justify-center bg-red-900/80 px-2 py-1.5 rounded text-red-200 hover:bg-red-800 transition-colors border border-red-700"
+                            className="flex-1 text-xs flex items-center justify-center bg-red-950/80 px-2 py-1.5 rounded-lg text-red-300 hover:bg-red-900 transition-colors border border-red-700/50 shadow-sm font-bold"
                           >
-                            <Trash2 size={12} className="mr-1" /> 売却
+                            <Trash2 size={14} className="mr-1.5" /> 売却
                           </button>
                         </>
                       );
@@ -1893,72 +1912,83 @@ export default function App() {
           )}
 
           {activeTab === 'GACHA' && (
-            <div className="flex-1 flex flex-col items-center p-4 overflow-y-auto overscroll-contain">
+            <div className="flex-1 flex flex-col items-center p-4 overflow-y-auto hide-scrollbar">
               <div className="w-full max-w-sm mb-4 flex justify-end">
-                <label className="flex items-center space-x-2 cursor-pointer bg-gray-800 px-3 py-2 rounded-lg border border-gray-700">
+                <label className="flex items-center space-x-2 cursor-pointer bg-gray-900/80 px-3 py-2 rounded-xl border border-gray-700/50 shadow-sm backdrop-blur-sm">
                   <input
                     type="checkbox"
                     checked={gameState.autoSellN || false}
                     onChange={(e) => setGameState(prev => ({ ...prev, autoSellN: e.target.checked }))}
-                    className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-600 bg-gray-700 focus:ring-blue-500 focus:ring-offset-gray-800"
+                    className="form-checkbox h-4 w-4 text-blue-500 rounded border-gray-600 bg-gray-800 focus:ring-blue-500 focus:ring-offset-gray-900 transition-colors"
                   />
-                  <span className="text-xs font-bold text-gray-300">Nレア自動売却</span>
+                  <span className="text-xs font-bold text-gray-300 font-mono">Nレア自動売却</span>
                 </label>
               </div>
 
-              <div className="w-full max-w-sm bg-gradient-to-b from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl text-center relative overflow-hidden mb-4 shrink-0">
-                <h2 className="text-2xl font-black text-gray-200 mb-2">ノーマルガチャ</h2>
-                <p className="text-gray-400 text-xs mb-6">N 〜 SR のヒーローを召喚</p>
-                <div className="flex gap-2">
+              <div className="w-full max-w-sm glass-panel rounded-3xl p-6 border border-gray-700/50 shadow-xl text-center relative overflow-hidden mb-6 shrink-0">
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-800/50 to-gray-900/50 pointer-events-none" />
+                <h2 className="text-2xl font-black text-gray-200 mb-1 relative z-10 font-mono tracking-wider">ノーマルガチャ</h2>
+                <p className="text-gray-400 text-[10px] mb-6 relative z-10 font-bold tracking-widest">N 〜 SR のヒーローを召喚</p>
+                <div className="flex gap-3 relative z-10">
                   <button
                     onClick={() => pullGacha('normal', 1)}
                     disabled={gameState.gold < 100}
-                    className="flex-1 py-3 rounded-xl font-bold text-md bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center border border-gray-600"
+                    className="flex-1 py-3.5 rounded-2xl font-bold text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center border border-gray-600/50 shadow-md"
                   >
-                    1回 <Coins size={16} className="ml-2 mr-1 text-yellow-400" /> 100
+                    1回 <Coins size={16} className="ml-2 mr-1 text-yellow-400" /> <span className="font-mono">100</span>
                   </button>
                   <button
                     onClick={() => pullGacha('normal', 10)}
                     disabled={gameState.gold < 1000}
-                    className="flex-1 py-3 rounded-xl font-bold text-md bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center border border-gray-600"
+                    className="flex-1 py-3.5 rounded-2xl font-bold text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center border border-gray-600/50 shadow-md"
                   >
-                    10回 <Coins size={16} className="ml-2 mr-1 text-yellow-400" /> 1000
+                    10回 <Coins size={16} className="ml-2 mr-1 text-yellow-400" /> <span className="font-mono">1000</span>
                   </button>
                 </div>
               </div>
 
-              <div className="w-full max-w-sm bg-gradient-to-b from-indigo-900 to-purple-900 rounded-2xl p-6 border-2 border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.2)] text-center relative overflow-hidden shrink-0">
-                <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 pointer-events-none"></div>
-                <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200 mb-2 drop-shadow-sm">
+              <div className="w-full max-w-sm bg-gradient-to-b from-indigo-950 to-purple-950 rounded-3xl p-6 border border-purple-500/30 shadow-[0_0_40px_rgba(168,85,247,0.15)] text-center relative overflow-hidden shrink-0">
+                <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none mix-blend-overlay"></div>
+                <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-100 to-yellow-300 mb-1 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] relative z-10 font-mono tracking-wider">
                   プレミアムガチャ
                 </h2>
-                <p className="text-purple-200 text-xs mb-2 font-medium">R 〜 UR のヒーローを召喚</p>
+                <p className="text-purple-300 text-[10px] mb-4 font-bold tracking-widest relative z-10">R 〜 UR のヒーローを召喚</p>
                 
                 {/* Pity System UI */}
-                <div className="mb-4 bg-black/40 rounded-lg p-2 border border-purple-500/50">
-                  <div className="flex justify-between text-[10px] text-purple-200 font-bold mb-1">
+                <div className="mb-6 bg-black/50 rounded-xl p-3 border border-purple-500/30 backdrop-blur-sm relative z-10 shadow-inner">
+                  <div className="flex justify-between text-[10px] text-purple-200 font-bold mb-2 font-mono">
                     <span>SSR確定まで</span>
-                    <span>{30 - gameState.pityCounter} 回</span>
+                    <span className="text-yellow-400">{30 - gameState.pityCounter} 回</span>
                   </div>
-                  <div className="w-full bg-gray-800 rounded-full h-1.5">
-                    <div className="bg-gradient-to-r from-purple-500 to-yellow-400 h-1.5 rounded-full" style={{ width: `${(gameState.pityCounter / 30) * 100}%` }}></div>
+                  <div className="w-full bg-gray-900 rounded-full h-2 shadow-inner overflow-hidden">
+                    <motion.div 
+                      className="bg-gradient-to-r from-purple-600 via-fuchsia-500 to-yellow-400 h-full rounded-full relative" 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(gameState.pityCounter / 30) * 100}%` }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                    >
+                      <div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite]" style={{ backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)' }} />
+                    </motion.div>
                   </div>
                 </div>
 
-                <div className="flex gap-2 relative z-10">
+                <div className="flex gap-3 relative z-10">
                   <button
                     onClick={() => pullGacha('premium', 1)}
                     disabled={gameState.gems < 300}
-                    className="flex-1 py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 disabled:opacity-50 text-black transition-all active:scale-95 flex items-center justify-center shadow-lg"
+                    className="flex-1 py-4 rounded-2xl font-bold text-md bg-gradient-to-b from-yellow-400 to-yellow-600 hover:from-yellow-300 hover:to-yellow-500 disabled:opacity-50 text-yellow-950 transition-all active:scale-95 flex items-center justify-center shadow-[0_4px_15px_rgba(234,179,8,0.3)] border border-yellow-300/50"
                   >
-                    1回 <Gem size={18} className="ml-2 mr-1 text-white" /> 300
+                    1回 <Gem size={18} className="ml-2 mr-1 text-cyan-100 drop-shadow-md" /> <span className="font-mono text-lg">300</span>
                   </button>
                   <button
                     onClick={() => pullGacha('premium', 10)}
                     disabled={gameState.gems < 3000}
-                    className="flex-1 py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 disabled:opacity-50 text-black transition-all active:scale-95 flex items-center justify-center shadow-lg"
+                    className="flex-1 py-4 rounded-2xl font-bold text-md bg-gradient-to-b from-yellow-400 to-yellow-600 hover:from-yellow-300 hover:to-yellow-500 disabled:opacity-50 text-yellow-950 transition-all active:scale-95 flex items-center justify-center shadow-[0_4px_15px_rgba(234,179,8,0.3)] border border-yellow-300/50"
                   >
-                    10回 <Gem size={18} className="ml-2 mr-1 text-white" /> 3000
+                    10回 <Gem size={18} className="ml-2 mr-1 text-cyan-100 drop-shadow-md" /> <span className="font-mono text-lg">3000</span>
                   </button>
                 </div>
               </div>
@@ -1966,43 +1996,45 @@ export default function App() {
           )}
 
           {activeTab === 'UPGRADES' && (
-            <div className="flex-1 flex flex-col items-center p-4 space-y-4 overflow-y-auto overscroll-contain">
-              <div className="w-full max-w-sm bg-gray-800 rounded-2xl p-4 border border-gray-700 shadow-xl shrink-0">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-bold text-white flex items-center">
-                    <Sword size={18} className="mr-2 text-red-400" /> タップダメージ
+            <div className="flex-1 flex flex-col items-center p-4 space-y-4 overflow-y-auto hide-scrollbar">
+              <div className="w-full max-w-sm glass-panel rounded-2xl p-5 border border-gray-700/50 shadow-xl shrink-0 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl pointer-events-none -mr-10 -mt-10" />
+                <div className="flex justify-between items-center mb-3 relative z-10">
+                  <h3 className="text-lg font-black text-white flex items-center tracking-wider">
+                    <Sword size={20} className="mr-2 text-red-400 drop-shadow-[0_0_5px_rgba(248,113,113,0.8)]" /> タップダメージ
                   </h3>
-                  <span className="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">Lv {gameState.upgrades?.tapDamage || 1}</span>
+                  <span className="text-xs bg-gray-900/80 px-2.5 py-1 rounded-md text-gray-300 font-mono border border-gray-700/50 shadow-inner">Lv {gameState.upgrades?.tapDamage || 1}</span>
                 </div>
-                <p className="text-xs text-gray-400 mb-4">敵をタップした際のダメージ倍率を増加させます。</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-bold text-red-400">x{(gameState.upgrades?.tapDamage || 1).toFixed(1)} 倍</span>
+                <p className="text-xs text-gray-400 mb-5 relative z-10 font-medium">敵をタップした際のダメージ倍率を増加させます。</p>
+                <div className="flex justify-between items-center relative z-10 bg-gray-900/40 p-3 rounded-xl border border-gray-800/50">
+                  <span className="text-lg font-black text-red-400 font-mono drop-shadow-sm">x{(gameState.upgrades?.tapDamage || 1).toFixed(1)} <span className="text-xs text-red-500/70 font-sans">倍</span></span>
                   <button
                     onClick={() => handleUpgrade('tapDamage')}
                     disabled={gameState.gold < getUpgradeCost('tapDamage', gameState.upgrades?.tapDamage || 1)}
-                    className="py-2 px-4 rounded-lg font-bold text-sm bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-all active:scale-95 flex items-center border border-gray-600"
+                    className="py-2.5 px-5 rounded-xl font-bold text-sm bg-gradient-to-b from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 disabled:opacity-50 transition-all active:scale-95 flex items-center border border-gray-600 shadow-md text-white"
                   >
-                    強化 <Coins size={14} className="ml-2 mr-1 text-yellow-400" /> {formatNumber(getUpgradeCost('tapDamage', gameState.upgrades?.tapDamage || 1))}
+                    強化 <Coins size={16} className="ml-2 mr-1.5 text-yellow-400" /> <span className="font-mono">{formatNumber(getUpgradeCost('tapDamage', gameState.upgrades?.tapDamage || 1))}</span>
                   </button>
                 </div>
               </div>
 
-              <div className="w-full max-w-sm bg-gray-800 rounded-2xl p-4 border border-gray-700 shadow-xl">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-bold text-white flex items-center">
-                    <TrendingUp size={18} className="mr-2 text-green-400" /> ヒーローDPS
+              <div className="w-full max-w-sm glass-panel rounded-2xl p-5 border border-gray-700/50 shadow-xl shrink-0 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-10 -mt-10" />
+                <div className="flex justify-between items-center mb-3 relative z-10">
+                  <h3 className="text-lg font-black text-white flex items-center tracking-wider">
+                    <TrendingUp size={20} className="mr-2 text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.8)]" /> ヒーローDPS
                   </h3>
-                  <span className="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">Lv {gameState.upgrades?.heroDps || 1}</span>
+                  <span className="text-xs bg-gray-900/80 px-2.5 py-1 rounded-md text-gray-300 font-mono border border-gray-700/50 shadow-inner">Lv {gameState.upgrades?.heroDps || 1}</span>
                 </div>
-                <p className="text-xs text-gray-400 mb-4">配置している全ヒーローのDPS倍率を増加させます。</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-bold text-green-400">x{(gameState.upgrades?.heroDps || 1).toFixed(1)} 倍</span>
+                <p className="text-xs text-gray-400 mb-5 relative z-10 font-medium">配置している全ヒーローのDPS倍率を増加させます。</p>
+                <div className="flex justify-between items-center relative z-10 bg-gray-900/40 p-3 rounded-xl border border-gray-800/50">
+                  <span className="text-lg font-black text-emerald-400 font-mono drop-shadow-sm">x{(gameState.upgrades?.heroDps || 1).toFixed(1)} <span className="text-xs text-emerald-500/70 font-sans">倍</span></span>
                   <button
                     onClick={() => handleUpgrade('heroDps')}
                     disabled={gameState.gold < getUpgradeCost('heroDps', gameState.upgrades?.heroDps || 1)}
-                    className="py-2 px-4 rounded-lg font-bold text-sm bg-gray-700 hover:bg-gray-600 disabled:opacity-50 transition-all active:scale-95 flex items-center border border-gray-600"
+                    className="py-2.5 px-5 rounded-xl font-bold text-sm bg-gradient-to-b from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 disabled:opacity-50 transition-all active:scale-95 flex items-center border border-gray-600 shadow-md text-white"
                   >
-                    強化 <Coins size={14} className="ml-2 mr-1 text-yellow-400" /> {formatNumber(getUpgradeCost('heroDps', gameState.upgrades?.heroDps || 1))}
+                    強化 <Coins size={16} className="ml-2 mr-1.5 text-yellow-400" /> <span className="font-mono">{formatNumber(getUpgradeCost('heroDps', gameState.upgrades?.heroDps || 1))}</span>
                   </button>
                 </div>
               </div>
@@ -2010,17 +2042,18 @@ export default function App() {
           )}
 
           {activeTab === 'TACTICS' && (
-            <div className="flex-1 flex flex-col items-center p-4 space-y-6 overflow-y-auto overscroll-contain">
-              <h2 className="text-2xl font-black text-white mb-2 w-full max-w-sm text-left flex items-center drop-shadow-md shrink-0">
+            <div className="flex-1 flex flex-col items-center p-4 space-y-6 overflow-y-auto hide-scrollbar">
+              <h2 className="text-2xl font-black text-white mb-2 w-full max-w-sm text-left flex items-center drop-shadow-md shrink-0 tracking-widest font-mono">
                 <BookOpen size={24} className="mr-2 text-blue-400" /> 戦術
               </h2>
 
               {/* Formations */}
-              <div className="w-full max-w-sm bg-gray-800 rounded-xl p-4 border border-gray-700 shrink-0">
-                <h3 className="text-lg font-bold text-white mb-3 flex items-center">
-                  <Crosshair size={18} className="mr-2 text-cyan-400" /> 陣形
+              <div className="w-full max-w-sm glass-panel rounded-2xl p-5 border border-gray-700/50 shrink-0 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none -mr-10 -mt-10" />
+                <h3 className="text-lg font-black text-white mb-4 flex items-center tracking-widest relative z-10">
+                  <Crosshair size={20} className="mr-2 text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]" /> 陣形
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-3 relative z-10">
                   {FORMATIONS.map(formation => {
                     const level = gameState.formations?.[formation.id] || 0;
                     const isActive = gameState.activeFormationId === formation.id;
@@ -2028,20 +2061,20 @@ export default function App() {
                     
                     return (
                       <div key={formation.id} className={cn(
-                        "p-3 rounded-lg border transition-all",
-                        isActive ? "bg-cyan-900/30 border-cyan-500" : "bg-gray-900 border-gray-700"
+                        "p-4 rounded-xl border transition-all duration-300",
+                        isActive ? "bg-cyan-950/40 border-cyan-500/50 shadow-[0_0_15px_rgba(34,211,238,0.15)]" : "bg-gray-900/50 border-gray-700/50 hover:bg-gray-800/50"
                       )}>
-                        <div className="flex justify-between items-start mb-2">
+                        <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h4 className="font-bold text-gray-100">{formation.name}</h4>
-                            <p className="text-xs text-gray-400 mt-1">{formation.description}</p>
+                            <h4 className={cn("font-black tracking-wider", isActive ? "text-cyan-300" : "text-gray-200")}>{formation.name}</h4>
+                            <p className="text-xs text-gray-400 mt-1 font-medium">{formation.description}</p>
                           </div>
                           {level > 0 ? (
                             <button
                               onClick={() => setGameState(prev => ({ ...prev, activeFormationId: isActive ? null : formation.id }))}
                               className={cn(
-                                "px-3 py-1 rounded text-xs font-bold transition-colors",
-                                isActive ? "bg-cyan-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 shadow-md active:scale-95",
+                                isActive ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white border border-cyan-400/50" : "bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-600"
                               )}
                             >
                               {isActive ? '解除' : '選択'}
@@ -2058,18 +2091,18 @@ export default function App() {
                                 }
                               }}
                               disabled={gameState.gems < unlockCost}
-                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded text-xs font-bold flex items-center"
+                              className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold flex items-center shadow-md active:scale-95 transition-all border border-blue-400/30"
                             >
-                              <Gem size={12} className="mr-1" /> {unlockCost}
+                              <Gem size={14} className="mr-1.5 text-blue-200" /> <span className="font-mono">{unlockCost}</span>
                             </button>
                           )}
                         </div>
                         {level > 0 && (
-                          <div className="grid grid-cols-3 gap-1 mt-2 w-24 mx-auto">
+                          <div className="grid grid-cols-3 gap-1.5 mt-3 w-24 mx-auto bg-gray-950/50 p-2 rounded-lg border border-gray-800/50">
                             {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(idx => (
                               <div key={idx} className={cn(
-                                "w-6 h-6 rounded-sm border",
-                                formation.positions.includes(idx) ? "bg-cyan-500/50 border-cyan-400" : "bg-gray-800 border-gray-700"
+                                "w-5 h-5 rounded-sm border transition-colors",
+                                formation.positions.includes(idx) ? "bg-cyan-400/80 border-cyan-300 shadow-[0_0_5px_rgba(34,211,238,0.5)]" : "bg-gray-800/50 border-gray-700/50"
                               )} />
                             ))}
                           </div>
@@ -2081,25 +2114,26 @@ export default function App() {
               </div>
 
               {/* Player Skills */}
-              <div className="w-full max-w-sm bg-gray-800 rounded-xl p-4 border border-gray-700 shrink-0">
-                <h3 className="text-lg font-bold text-white mb-3 flex items-center">
-                  <Zap size={18} className="mr-2 text-yellow-400" /> プレイヤースキル
+              <div className="w-full max-w-sm glass-panel rounded-2xl p-5 border border-gray-700/50 shrink-0 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none -mr-10 -mt-10" />
+                <h3 className="text-lg font-black text-white mb-4 flex items-center tracking-widest relative z-10">
+                  <Zap size={20} className="mr-2 text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]" /> プレイヤースキル
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-4 relative z-10">
                   {PLAYER_SKILLS.map(skill => {
                     const level = gameState.activeSkills?.[skill.id] || 0;
                     const cost = Math.floor(skill.baseCost * Math.pow(skill.costMultiplier, level));
                     const isMax = level >= skill.maxLevel;
 
                     return (
-                      <div key={skill.id} className="bg-gray-900 p-3 rounded-lg border border-gray-700">
-                        <div className="flex justify-between items-start mb-2">
+                      <div key={skill.id} className="bg-gray-900/50 p-4 rounded-xl border border-gray-700/50 hover:bg-gray-800/50 transition-colors">
+                        <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h4 className="font-bold text-gray-100 flex items-center">
-                              {skill.name} <span className="ml-2 text-xs bg-gray-700 px-1.5 py-0.5 rounded text-gray-300">Lv.{level}</span>
+                            <h4 className="font-black text-gray-100 flex items-center tracking-wider">
+                              {skill.name} <span className="ml-2 text-[10px] bg-gray-800 px-2 py-0.5 rounded-md text-gray-300 font-mono border border-gray-700">Lv.{level}</span>
                             </h4>
-                            <p className="text-xs text-gray-400 mt-1">{skill.description}</p>
-                            <p className="text-[10px] text-gray-500 mt-1">クールダウン: {skill.cooldown}秒</p>
+                            <p className="text-xs text-gray-400 mt-1.5 font-medium">{skill.description}</p>
+                            <p className="text-[10px] text-gray-500 mt-1.5 font-mono bg-gray-950/50 inline-block px-2 py-0.5 rounded border border-gray-800">CD: {skill.cooldown}s</p>
                           </div>
                         </div>
                         <button
@@ -2113,9 +2147,9 @@ export default function App() {
                             }
                           }}
                           disabled={isMax || gameState.gems < cost}
-                          className="w-full mt-2 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-bold flex items-center justify-center transition-colors"
+                          className="w-full mt-2 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl text-sm font-bold flex items-center justify-center transition-all active:scale-95 shadow-md border border-blue-400/30"
                         >
-                          {isMax ? 'MAX LEVEL' : <><Gem size={14} className="mr-1" /> {formatNumber(cost)} で強化</>}
+                          {isMax ? 'MAX LEVEL' : <><Gem size={16} className="mr-1.5 text-blue-200" /> <span className="font-mono">{formatNumber(cost)}</span> <span className="ml-1 text-xs font-normal">で強化</span></>}
                         </button>
                       </div>
                     );
@@ -2126,67 +2160,67 @@ export default function App() {
           )}
 
           {activeTab === 'MISSIONS' && (
-            <div className="flex-1 flex flex-col items-center p-4 space-y-4 overflow-y-auto overscroll-contain">
-              <h2 className="text-2xl font-black text-white mb-2 w-full max-w-sm text-left flex items-center drop-shadow-md shrink-0">
+            <div className="flex-1 flex flex-col items-center p-4 space-y-4 overflow-y-auto hide-scrollbar">
+              <h2 className="text-2xl font-black text-white mb-2 w-full max-w-sm text-left flex items-center drop-shadow-md shrink-0 tracking-widest font-mono">
                 <Target size={24} className="mr-2 text-blue-400" /> ミッション
               </h2>
 
-              <div className="w-full max-w-sm flex bg-gray-800 rounded-lg p-1 mb-2 shrink-0">
+              <div className="w-full max-w-sm flex bg-gray-900/80 rounded-xl p-1.5 mb-2 shrink-0 border border-gray-700/50 shadow-inner">
                 <button 
                   onClick={() => setMissionTab('DAILY')}
-                  className={cn("flex-1 py-2 text-sm font-bold rounded-md transition-colors", missionTab === 'DAILY' ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200")}
+                  className={cn("flex-1 py-2.5 text-sm font-black rounded-lg transition-all duration-300 tracking-wider", missionTab === 'DAILY' ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md" : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50")}
                 >
                   デイリー
                 </button>
                 <button 
                   onClick={() => setMissionTab('ACHIEVEMENT')}
-                  className={cn("flex-1 py-2 text-sm font-bold rounded-md transition-colors", missionTab === 'ACHIEVEMENT' ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-200")}
+                  className={cn("flex-1 py-2.5 text-sm font-black rounded-lg transition-all duration-300 tracking-wider", missionTab === 'ACHIEVEMENT' ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md" : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50")}
                 >
                   実績
                 </button>
               </div>
 
               {missionTab === 'DAILY' ? (
-                <div className="w-full max-w-sm space-y-3">
+                <div className="w-full max-w-sm space-y-3.5">
                   {gameState.missions.map(mission => {
                     const isComplete = mission.progress >= mission.target;
                     return (
                       <div key={mission.id} className={cn(
-                        "w-full rounded-xl p-4 border shadow-lg relative overflow-hidden transition-all",
-                        mission.claimed ? "bg-gray-900 border-gray-800 opacity-60" : "bg-gray-800 border-gray-600"
+                        "w-full rounded-2xl p-4 border shadow-lg relative overflow-hidden transition-all duration-300",
+                        mission.claimed ? "bg-gray-900/50 border-gray-800/50 opacity-60" : "glass-panel border-gray-700/50 hover:border-gray-600/50"
                       )}>
                         <div className="flex justify-between items-start mb-3 relative z-10 gap-2">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              {mission.isDaily && <span className="text-[10px] bg-blue-900 text-blue-300 px-1.5 py-0.5 rounded font-bold border border-blue-700 whitespace-nowrap">デイリー</span>}
-                              <h3 className={cn("font-bold text-sm break-words", mission.claimed ? "text-gray-500" : "text-gray-100")}>{mission.title}</h3>
+                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                              {mission.isDaily && <span className="text-[10px] bg-blue-950 text-blue-300 px-2 py-0.5 rounded-md font-black border border-blue-800/50 tracking-wider shadow-inner">デイリー</span>}
+                              <h3 className={cn("font-black text-sm break-words tracking-wide", mission.claimed ? "text-gray-500" : "text-gray-100")}>{mission.title}</h3>
                             </div>
-                            <p className="text-sm text-gray-300 mt-1 flex items-center">
-                              報酬: <Gem size={14} className="inline text-cyan-400 mx-1 flex-shrink-0" /> <span className="text-cyan-400 font-bold">{mission.rewardGems}</span>
+                            <p className="text-sm text-gray-300 mt-1 flex items-center font-medium">
+                              報酬: <Gem size={14} className="inline text-cyan-400 mx-1.5 flex-shrink-0" /> <span className="text-cyan-400 font-bold font-mono">{mission.rewardGems}</span>
                             </p>
                           </div>
                           <button
                             onClick={() => claimMission(mission.id)}
                             disabled={!isComplete || mission.claimed}
                             className={cn(
-                              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex-shrink-0",
-                              mission.claimed ? "bg-gray-800 text-gray-500 border border-gray-700" :
-                              isComplete ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-500 hover:to-cyan-500 active:scale-95 shadow-[0_0_10px_rgba(37,99,235,0.6)] animate-pulse" :
-                              "bg-gray-700 text-gray-300 border border-gray-600"
+                              "px-4 py-2 rounded-xl text-xs font-black transition-all duration-300 whitespace-nowrap flex-shrink-0 shadow-md active:scale-95 tracking-wider",
+                              mission.claimed ? "bg-gray-800/50 text-gray-500 border border-gray-700/50 shadow-none" :
+                              isComplete ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-400 hover:to-cyan-400 shadow-[0_0_15px_rgba(56,189,248,0.4)] animate-pulse border border-cyan-400/50" :
+                              "bg-gray-800 text-gray-400 border border-gray-700"
                             )}
                           >
                             {mission.claimed ? '受取済' : isComplete ? '受取可能' : '未達成'}
                           </button>
                         </div>
                         {!mission.claimed && (
-                          <div className="w-full bg-gray-900 rounded-full h-2 mt-2 relative z-10 border border-gray-700 overflow-hidden">
+                          <div className="w-full bg-gray-950 rounded-full h-2.5 mt-3 relative z-10 border border-gray-800/50 overflow-hidden shadow-inner">
                             <div 
                               className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full transition-all duration-500" 
                               style={{ width: `${Math.min(100, (mission.progress / mission.target) * 100)}%` }}
                             />
                           </div>
                         )}
-                        <div className="absolute bottom-1 right-3 text-[10px] text-gray-400 font-mono z-10 font-bold">
+                        <div className="absolute bottom-1.5 right-4 text-[10px] text-gray-400 font-mono z-10 font-bold tracking-wider">
                           {formatNumber(Math.min(mission.progress, mission.target))} / {formatNumber(mission.target)}
                         </div>
                       </div>
@@ -2194,28 +2228,28 @@ export default function App() {
                   })}
                 </div>
               ) : (
-                <div className="w-full max-w-sm space-y-3">
+                <div className="w-full max-w-sm space-y-3.5">
                   {ACHIEVEMENTS.map(ach => {
                     const isCompleted = gameState.achievements?.[ach.id];
                     return (
                       <div key={ach.id} className={cn(
-                        "bg-gray-800 p-4 rounded-xl border flex items-center justify-between",
-                        isCompleted ? "border-green-500/50 opacity-70" : "border-gray-700"
+                        "glass-panel p-4 rounded-2xl border flex items-center justify-between transition-all duration-300",
+                        isCompleted ? "border-emerald-500/30 bg-emerald-950/10 opacity-80" : "border-gray-700/50 hover:border-gray-600/50"
                       )}>
-                        <div>
-                          <h3 className={cn("font-bold text-base", isCompleted ? "text-green-400" : "text-gray-100")}>{ach.title}</h3>
-                          <p className="text-xs text-gray-400 mt-1">{ach.description}</p>
-                          <p className="text-sm text-gray-300 mt-1 flex items-center">
-                            報酬: <Gem size={14} className="inline text-cyan-400 mx-1" /> <span className="text-cyan-400 font-bold">{ach.rewardGems}</span>
+                        <div className="flex-1 pr-4">
+                          <h3 className={cn("font-black text-sm tracking-wide mb-1", isCompleted ? "text-emerald-400" : "text-gray-100")}>{ach.title}</h3>
+                          <p className="text-xs text-gray-400 font-medium leading-relaxed">{ach.description}</p>
+                          <p className="text-sm text-gray-300 mt-2 flex items-center font-medium">
+                            報酬: <Gem size={14} className="inline text-cyan-400 mx-1.5" /> <span className="text-cyan-400 font-bold font-mono">{ach.rewardGems}</span>
                           </p>
                         </div>
-                        <div>
+                        <div className="flex-shrink-0">
                           {isCompleted ? (
-                            <div className="bg-green-900/50 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/50 flex items-center">
-                              <CheckCircle2 size={14} className="mr-1" /> 達成済
+                            <div className="bg-emerald-950/50 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-black border border-emerald-500/30 flex items-center shadow-inner tracking-wider">
+                              <CheckCircle2 size={16} className="mr-1.5" /> 達成済
                             </div>
                           ) : (
-                            <div className="bg-gray-700 text-gray-400 px-3 py-1 rounded-full text-xs font-bold">
+                            <div className="bg-gray-800/80 text-gray-500 px-3 py-1.5 rounded-xl text-xs font-black border border-gray-700/50 tracking-wider">
                               未達成
                             </div>
                           )}
@@ -2229,51 +2263,59 @@ export default function App() {
           )}
 
           {activeTab === 'PRESTIGE' && (
-            <div className="flex-1 flex flex-col items-center p-4 overflow-y-auto overscroll-contain">
-              <div className="w-full max-w-sm bg-gradient-to-b from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl text-center relative overflow-hidden shrink-0 mb-4">
-                <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 mb-2 drop-shadow-sm">
-                  転生 (PRESTIGE)
-                </h2>
-                <p className="text-gray-400 text-sm mb-6">進行度をリセットし、永続的な力を得ます。</p>
+            <div className="flex-1 flex flex-col items-center p-4 overflow-y-auto hide-scrollbar">
+              <div className="w-full max-w-sm bg-gradient-to-br from-cyan-950/80 to-blue-950/80 rounded-2xl p-6 border border-cyan-500/30 shadow-[0_4px_20px_rgba(6,182,212,0.15)] text-center relative overflow-hidden shrink-0 mb-4 backdrop-blur-sm">
+                <div className="absolute top-0 left-0 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl -ml-10 -mt-10 pointer-events-none"></div>
+                <div className="absolute bottom-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mb-10 pointer-events-none"></div>
                 
-                <div className="bg-gray-950 rounded-xl p-4 mb-6 border border-gray-800">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-400 text-sm">現在のDPS倍率:</span>
-                    <span className="text-cyan-400 font-bold">x{((gameState.prestigeMultiplier || 1)).toFixed(2)}</span>
+                <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 mb-2 drop-shadow-sm tracking-widest relative z-10">
+                  転生 <span className="text-sm font-normal text-cyan-400/80 ml-1">(PRESTIGE)</span>
+                </h2>
+                <p className="text-gray-300 text-xs mb-6 font-medium relative z-10">進行度をリセットし、永続的な力を得ます。</p>
+                
+                <div className="bg-gray-950/80 rounded-xl p-5 mb-6 border border-gray-800/50 shadow-inner relative z-10">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-gray-400 text-sm font-bold tracking-wider">現在のDPS倍率:</span>
+                    <span className="text-cyan-400 font-black text-lg font-mono drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]">x{((gameState.prestigeMultiplier || 1)).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-400 text-sm">所持転生ポイント:</span>
-                    <span className="text-yellow-400 font-bold">{gameState.prestigePoints || 0}</span>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-gray-400 text-sm font-bold tracking-wider">所持転生ポイント:</span>
+                    <span className="text-yellow-400 font-black text-lg font-mono drop-shadow-[0_0_5px_rgba(250,204,21,0.5)] flex items-center"><Crown size={16} className="mr-1.5" /> {gameState.prestigePoints || 0}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400 text-sm">転生回数:</span>
-                    <span className="text-purple-400 font-bold">{gameState.prestigeCount || 0}</span>
+                    <span className="text-gray-400 text-sm font-bold tracking-wider">転生回数:</span>
+                    <span className="text-purple-400 font-black text-lg font-mono drop-shadow-[0_0_5px_rgba(192,132,252,0.5)]">{gameState.prestigeCount || 0}</span>
                   </div>
                 </div>
 
-                <div className="bg-gray-950 rounded-xl p-4 mb-6 border border-gray-800">
-                  <h3 className="text-gray-300 font-bold mb-2">次回の転生報酬</h3>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-400 text-sm">獲得ポイント:</span>
-                    <span className="text-yellow-400 font-bold">+{Math.floor(gameState.stage / 10)}</span>
+                <div className="glass-panel rounded-xl p-5 mb-6 border border-gray-700/50 relative z-10 text-left">
+                  <h3 className="text-white font-black mb-3 flex items-center tracking-widest text-sm"><ArrowUpCircle size={16} className="mr-1.5 text-cyan-400" /> 次回の転生報酬</h3>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-gray-300 text-sm font-bold">獲得ポイント:</span>
+                    <span className="text-yellow-400 font-black text-xl font-mono flex items-center drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]">+{Math.floor(gameState.stage / 10)} <Crown size={16} className="ml-1.5" /></span>
                   </div>
-                  <p className="text-xs text-gray-500">10ステージクリアごとに1ポイント獲得。1ポイントにつき全体のDPSが+10%されます。</p>
+                  <p className="text-[10px] text-gray-400 font-medium leading-relaxed bg-gray-900/50 p-2 rounded-lg border border-gray-800/50">10ステージクリアごとに1ポイント獲得。1ポイントにつき全体のDPSが+10%されます。※ステージ、ゴールド、ヒーローレベルがリセットされます。</p>
                 </div>
 
                 <button
                   onClick={handlePrestige}
                   disabled={Math.floor(gameState.stage / 10) <= 0}
-                  className="w-full py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 text-white transition-all active:scale-95 flex items-center justify-center shadow-lg"
+                  className={cn(
+                    "w-full py-4 rounded-xl font-black text-lg transition-all duration-300 flex items-center justify-center shadow-lg tracking-widest relative z-10",
+                    Math.floor(gameState.stage / 10) > 0
+                      ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-500 hover:to-blue-500 active:scale-95 shadow-[0_0_20px_rgba(6,182,212,0.5)] animate-pulse border border-cyan-400/50" 
+                      : "bg-gray-800/80 text-gray-500 border border-gray-700/50 shadow-none"
+                  )}
                 >
-                  <ArrowUpCircle size={20} className="mr-2" /> 転生する
+                  <ArrowUpCircle size={20} className="mr-2" /> {Math.floor(gameState.stage / 10) > 0 ? '転生する' : 'ステージ10で解放'}
                 </button>
               </div>
 
               <div className="w-full max-w-sm shrink-0">
-                <h3 className="text-xl font-black text-white mb-4 flex items-center">
+                <h3 className="text-xl font-black text-white mb-4 flex items-center tracking-widest drop-shadow-md font-mono">
                   <Sparkles size={20} className="mr-2 text-yellow-400" /> タレントツリー
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-3.5">
                   {TALENTS.map(talent => {
                     const currentLevel = gameState.talents?.[talent.id] || 0;
                     const isMax = currentLevel >= talent.maxLevel;
@@ -2281,13 +2323,13 @@ export default function App() {
                     const canAfford = (gameState.prestigePoints || 0) >= cost;
 
                     return (
-                      <div key={talent.id} className="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-md">
+                      <div key={talent.id} className="glass-panel p-4 rounded-2xl border border-gray-700/50 shadow-lg hover:border-gray-600/50 transition-colors">
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <h4 className="font-bold text-gray-100">{talent.name} <span className="text-xs text-gray-400 ml-1">Lv.{currentLevel}/{talent.maxLevel}</span></h4>
-                            <p className="text-xs text-gray-400 mt-1">{talent.description}</p>
+                            <h4 className="font-black text-gray-100 tracking-wider flex items-center">{talent.name} <span className="text-[10px] bg-gray-900/80 px-2 py-0.5 rounded-md text-gray-400 ml-2 font-mono border border-gray-700/50 shadow-inner">Lv.{currentLevel}/{talent.maxLevel}</span></h4>
+                            <p className="text-[10px] text-gray-400 mt-1.5 font-medium">{talent.description}</p>
                             {currentLevel > 0 && (
-                              <p className="text-[10px] text-cyan-400 mt-1">現在の効果: +{Math.round(currentLevel * talent.effectPerLevel * 100)}%</p>
+                              <p className="text-[10px] text-cyan-400 mt-1.5 font-bold bg-cyan-950/30 inline-block px-2 py-0.5 rounded border border-cyan-900/50">現在の効果: +{Math.round(currentLevel * talent.effectPerLevel * 100)}%</p>
                             )}
                           </div>
                           <button
@@ -2304,12 +2346,12 @@ export default function App() {
                             }}
                             disabled={isMax || !canAfford}
                             className={cn(
-                              "px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ml-2 transition-colors",
-                              isMax ? "bg-gray-700 text-gray-500 cursor-not-allowed" :
-                              canAfford ? "bg-yellow-600 text-white hover:bg-yellow-500" : "bg-gray-700 text-gray-400 cursor-not-allowed"
+                              "px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap ml-2 transition-all duration-300 shadow-md active:scale-95 tracking-wider flex-shrink-0",
+                              isMax ? "bg-gray-800/80 text-gray-500 border border-gray-700/50 shadow-none" :
+                              canAfford ? "bg-gradient-to-r from-yellow-600 to-amber-600 text-white hover:from-yellow-500 hover:to-amber-500 border border-yellow-500/50 shadow-[0_0_10px_rgba(250,204,21,0.3)]" : "bg-gray-800 text-gray-400 border border-gray-700"
                             )}
                           >
-                            {isMax ? 'MAX' : `${cost} pt`}
+                            {isMax ? 'MAX' : <span className="font-mono">{cost} pt</span>}
                           </button>
                         </div>
                       </div>
@@ -2320,26 +2362,26 @@ export default function App() {
             </div>
           )}
           {activeTab === 'ARTIFACTS' && (
-            <div className="flex-1 flex flex-col items-center p-4 space-y-3 overflow-y-auto overscroll-contain">
+            <div className="flex-1 flex flex-col items-center p-4 space-y-4 overflow-y-auto hide-scrollbar">
               <div className="w-full max-w-sm flex justify-between items-center mb-2 shrink-0">
-                <h2 className="text-xl font-black text-white flex items-center">
-                  <Crown size={20} className="mr-2 text-purple-400" /> 遺物 (ARTIFACTS)
+                <h2 className="text-2xl font-black text-white flex items-center drop-shadow-md tracking-widest font-mono">
+                  <Crown size={24} className="mr-2 text-purple-400" /> 遺物 <span className="text-[10px] text-purple-400/80 ml-2 font-normal">(ARTIFACTS)</span>
                 </h2>
                 <div className="flex gap-2">
-                  <div className="text-purple-300 font-bold bg-gray-800 px-3 py-1 rounded-full border border-gray-700 flex items-center text-xs">
-                    <Sparkles size={12} className="mr-1" /> {gameState.artifactShards || 0}
+                  <div className="text-purple-300 font-bold bg-gray-900/80 px-3 py-1.5 rounded-xl border border-gray-700/50 flex items-center text-xs shadow-inner font-mono">
+                    <Sparkles size={14} className="mr-1.5 text-purple-400" /> {gameState.artifactShards || 0}
                   </div>
-                  <div className="text-yellow-400 font-bold bg-gray-800 px-3 py-1 rounded-full border border-gray-700 flex items-center text-xs">
-                    <Crown size={12} className="mr-1" /> {gameState.prestigePoints || 0}
+                  <div className="text-yellow-400 font-bold bg-gray-900/80 px-3 py-1.5 rounded-xl border border-gray-700/50 flex items-center text-xs shadow-inner font-mono">
+                    <Crown size={14} className="mr-1.5 text-yellow-500" /> {gameState.prestigePoints || 0}
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 w-full max-w-sm mb-2 shrink-0">転生ポイントや遺物の欠片を消費して強力な遺物を獲得・強化します。</p>
+              <p className="text-[10px] text-gray-400 w-full max-w-sm mb-2 shrink-0 font-bold tracking-widest text-center">転生ポイントや遺物の欠片を消費して強力な遺物を獲得・強化します。</p>
               
-              <div className="w-full max-w-sm bg-gradient-to-br from-purple-900 to-indigo-900 rounded-xl p-4 border border-purple-500/30 shadow-lg shadow-purple-900/20 mb-4 relative overflow-hidden shrink-0">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                <h3 className="font-black text-white mb-1 flex items-center"><Sparkles size={16} className="mr-2 text-purple-300" /> 遺物ガチャ</h3>
-                <p className="text-xs text-purple-200/70 mb-4">遺物の欠片を10個消費して、ランダムな遺物を1レベル強化します。</p>
+              <div className="w-full max-w-sm bg-gradient-to-br from-purple-950/80 to-indigo-950/80 rounded-2xl p-5 border border-purple-500/30 shadow-[0_4px_20px_rgba(168,85,247,0.15)] mb-4 relative overflow-hidden shrink-0 backdrop-blur-sm">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                <h3 className="font-black text-white mb-2 flex items-center tracking-widest relative z-10"><Sparkles size={18} className="mr-2 text-purple-400 drop-shadow-[0_0_5px_rgba(192,132,252,0.8)]" /> 遺物ガチャ</h3>
+                <p className="text-xs text-purple-200/70 mb-5 relative z-10 font-medium">遺物の欠片を10個消費して、ランダムな遺物を1レベル強化します。</p>
                 <button
                   onClick={() => {
                     if ((gameState.artifactShards || 0) < 10) return;
@@ -2360,18 +2402,18 @@ export default function App() {
                   }}
                   disabled={(gameState.artifactShards || 0) < 10 || ARTIFACTS.every(a => (gameState.artifacts?.[a.id] || 0) >= a.maxLevel)}
                   className={cn(
-                    "w-full py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center shadow-lg",
+                    "w-full py-3.5 rounded-xl font-black text-sm transition-all duration-300 flex items-center justify-center shadow-lg relative z-10 tracking-wider",
                     (gameState.artifactShards || 0) >= 10 && !ARTIFACTS.every(a => (gameState.artifacts?.[a.id] || 0) >= a.maxLevel)
-                      ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-500 hover:to-indigo-500 active:scale-95 shadow-purple-500/20"
-                      : "bg-gray-800 text-gray-500 border border-gray-700 shadow-none"
+                      ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-500 hover:to-indigo-500 active:scale-95 shadow-[0_0_15px_rgba(168,85,247,0.4)] border border-purple-400/50"
+                      : "bg-gray-800/80 text-gray-500 border border-gray-700/50 shadow-none"
                   )}
                 >
                   {ARTIFACTS.every(a => (gameState.artifacts?.[a.id] || 0) >= a.maxLevel) ? (
                     "全て最大レベル"
                   ) : (
                     <>
-                      <Sparkles size={16} className="mr-2" />
-                      ガチャを引く (欠片 10)
+                      <Sparkles size={18} className="mr-2 text-purple-200" />
+                      ガチャを引く <span className="text-[10px] font-normal ml-2 bg-purple-950/50 px-2 py-0.5 rounded border border-purple-800/50">(欠片 10)</span>
                     </>
                   )}
                 </button>
@@ -2383,11 +2425,11 @@ export default function App() {
                 const cost = artifact.baseCost * Math.pow(2, currentLevel);
                 
                 return (
-                  <div key={artifact.id} className="w-full max-w-sm bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-md shrink-0">
-                    <div className="flex justify-between items-start mb-2">
+                  <div key={artifact.id} className="w-full max-w-sm glass-panel rounded-2xl p-5 border border-gray-700/50 shadow-xl shrink-0 hover:border-gray-600/50 transition-colors">
+                    <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="font-bold text-purple-300">{artifact.name} <span className="text-xs text-gray-400 ml-1">Lv.{currentLevel}/{artifact.maxLevel}</span></h3>
-                        <p className="text-xs text-gray-400 mt-1">{artifact.description}</p>
+                        <h3 className="font-black text-purple-300 tracking-wider flex items-center">{artifact.name} <span className="text-[10px] bg-gray-900/80 px-2 py-0.5 rounded-md text-gray-400 ml-2 font-mono border border-gray-700/50 shadow-inner">Lv.{currentLevel}/{artifact.maxLevel}</span></h3>
+                        <p className="text-xs text-gray-400 mt-1.5 font-medium">{artifact.description}</p>
                       </div>
                       <button
                         onClick={() => {
@@ -2403,17 +2445,18 @@ export default function App() {
                         }}
                         disabled={isMax || (gameState.prestigePoints || 0) < cost}
                         className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center",
-                          isMax ? "bg-gray-700 text-gray-500" :
-                          (gameState.prestigePoints || 0) >= cost ? "bg-purple-600 text-white hover:bg-purple-500 active:scale-95" :
-                          "bg-gray-700 text-gray-400"
+                          "px-4 py-2 rounded-xl text-xs font-black transition-all duration-300 flex items-center shadow-md active:scale-95 tracking-wider",
+                          isMax ? "bg-gray-800/80 text-gray-500 border border-gray-700/50 shadow-none" :
+                          (gameState.prestigePoints || 0) >= cost ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-500 hover:to-indigo-500 border border-purple-400/50 shadow-[0_0_10px_rgba(168,85,247,0.3)]" :
+                          "bg-gray-800 text-gray-400 border border-gray-700"
                         )}
                       >
-                        {isMax ? 'MAX' : <>強化 <ArrowUpCircle size={12} className="ml-1 mr-1 text-yellow-400" /> {cost}</>}
+                        {isMax ? 'MAX' : <>強化 <ArrowUpCircle size={14} className="ml-1.5 mr-1 text-yellow-400" /> <span className="font-mono">{cost}</span></>}
                       </button>
                     </div>
-                    <div className="text-[10px] text-gray-500">
-                      効果: {artifact.id === 'boss_sla' ? `ボスHP -${currentLevel * 5}%` : artifact.id === 'gold_rin' ? `ゴールド +${currentLevel * 20}%` : `DPS +${currentLevel * 10}%`}
+                    <div className="text-[10px] text-gray-400 font-mono bg-gray-900/50 p-2 rounded-lg border border-gray-800/50 inline-block">
+                      効果: <span className="text-purple-400 font-bold">{artifact.id === 'boss_sla' ? `ボスHP -${currentLevel * 5}%` : artifact.id === 'gold_rin' ? `ゴールド +${currentLevel * 20}%` : `DPS +${currentLevel * 10}%`}</span>
+
                       {!isMax && <span className="text-purple-400 ml-2">→ 次: {artifact.id === 'boss_sla' ? `-${(currentLevel + 1) * 5}%` : artifact.id === 'gold_rin' ? `+${(currentLevel + 1) * 20}%` : `+${(currentLevel + 1) * 10}%`}</span>}
                     </div>
                   </div>
@@ -2423,29 +2466,29 @@ export default function App() {
           )}
 
           {activeTab === 'EXPEDITIONS' && (
-            <div className="flex-1 flex flex-col items-center p-4 space-y-4 overflow-y-auto overscroll-contain">
+            <div className="flex-1 flex flex-col items-center p-4 space-y-4 overflow-y-auto hide-scrollbar">
               <div className="w-full max-w-sm flex justify-between items-center mb-2 shrink-0">
-                <h2 className="text-2xl font-black text-white flex items-center drop-shadow-md">
-                  <Map size={24} className="mr-2 text-orange-400" /> 派遣
+                <h2 className="text-2xl font-black text-white flex items-center drop-shadow-md tracking-widest font-mono">
+                  <Map size={24} className="mr-2 text-orange-400" /> 派遣 <span className="text-[10px] text-orange-400/80 ml-2 font-normal">(EXPEDITIONS)</span>
                 </h2>
                 <div className="flex space-x-2">
                   <button
                     onClick={handleClaimAllExpeditions}
-                    className="px-3 py-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg transition-colors shadow-md"
+                    className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white text-xs font-black rounded-xl transition-all duration-300 shadow-md active:scale-95 border border-emerald-500/50 tracking-wider"
                   >
                     一括受取
                   </button>
                   <button
                     onClick={handleAutoDispatchExpeditions}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors shadow-md"
+                    className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-black rounded-xl transition-all duration-300 shadow-md active:scale-95 border border-blue-500/50 tracking-wider"
                   >
                     自動派遣
                   </button>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 w-full max-w-sm mb-2 shrink-0">ヒーローを派遣して報酬を獲得しましょう。派遣中もヒーローは通常通り戦闘に参加できます。</p>
+              <p className="text-[10px] text-gray-400 w-full max-w-sm mb-2 shrink-0 font-bold tracking-widest text-center">ヒーローを派遣して報酬を獲得しましょう。派遣中も戦闘に参加できます。</p>
 
-              <div className="w-full max-w-sm space-y-3 shrink-0">
+              <div className="w-full max-w-sm space-y-3.5 shrink-0">
                 {EXPEDITIONS.map(exp => {
                   const activeExp = gameState.activeExpeditions?.find(e => e.expeditionId === exp.id);
                   const isCompleted = activeExp && (now >= activeExp.startTime + exp.durationMinutes * 60 * 1000);
@@ -2453,36 +2496,39 @@ export default function App() {
                   const progress = activeExp ? Math.min(100, ((now - activeExp.startTime) / (exp.durationMinutes * 60 * 1000)) * 100) : 0;
 
                   return (
-                    <div key={exp.id} className="bg-gray-800 p-3 rounded-xl border border-gray-700 shadow-md">
-                      <div className="flex justify-between items-start mb-2">
+                    <div key={exp.id} className={cn(
+                      "glass-panel p-4 rounded-2xl border shadow-lg transition-all duration-300",
+                      isCompleted ? "border-emerald-500/30 bg-emerald-950/10" : activeExp ? "border-orange-500/30 bg-orange-950/10" : "border-gray-700/50 hover:border-gray-600/50"
+                    )}>
+                      <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h3 className="font-bold text-gray-200">{exp.name}</h3>
-                          <p className="text-[10px] text-gray-400">{exp.description}</p>
+                          <h3 className="font-black text-gray-100 tracking-wider">{exp.name}</h3>
+                          <p className="text-[10px] text-gray-400 mt-1 font-medium">{exp.description}</p>
                         </div>
                         <div className="text-right">
-                          <div className="text-xs font-bold text-yellow-400 flex items-center justify-end">
-                            {exp.rewardType === 'gold' && <Coins size={12} className="mr-1" />}
-                            {exp.rewardType === 'gems' && <Gem size={12} className="mr-1" />}
-                            {exp.rewardType === 'artifactShards' && <Crown size={12} className="mr-1" />}
-                            {formatNumber(exp.baseReward)}
+                          <div className="text-xs font-black text-yellow-400 flex items-center justify-end bg-gray-900/80 px-2 py-1 rounded-lg border border-gray-700/50 shadow-inner">
+                            {exp.rewardType === 'gold' && <Coins size={12} className="mr-1.5 text-yellow-500" />}
+                            {exp.rewardType === 'gems' && <Gem size={12} className="mr-1.5 text-cyan-400" />}
+                            {exp.rewardType === 'artifactShards' && <Crown size={12} className="mr-1.5 text-purple-400" />}
+                            <span className="font-mono">{formatNumber(exp.baseReward)}</span>
                           </div>
-                          <div className="text-[10px] text-gray-500 flex items-center justify-end mt-1">
+                          <div className="text-[10px] text-gray-500 flex items-center justify-end mt-1.5 font-mono font-bold">
                             <Clock size={10} className="mr-1" /> {exp.durationMinutes}分
                           </div>
                         </div>
                       </div>
 
                       {activeExp ? (
-                        <div className="mt-3">
-                          <div className="flex justify-between text-[10px] mb-1">
-                            <span className="text-gray-400">派遣中: {HEROES.find(h => h.id === activeExp.heroId)?.name}</span>
-                            <span className={isCompleted ? "text-green-400 font-bold" : "text-orange-400"}>
+                        <div className="mt-4">
+                          <div className="flex justify-between text-[10px] mb-1.5 font-bold tracking-wider">
+                            <span className="text-gray-400 flex items-center"><User size={10} className="mr-1" /> 派遣中: <span className="text-gray-200 ml-1">{HEROES.find(h => h.id === activeExp.heroId)?.name}</span></span>
+                            <span className={cn("font-mono", isCompleted ? "text-emerald-400 animate-pulse" : "text-orange-400")}>
                               {isCompleted ? '完了！' : `${Math.ceil(timeLeft / 1000 / 60)}分 ${Math.ceil((timeLeft / 1000) % 60)}秒`}
                             </span>
                           </div>
-                          <div className="w-full bg-gray-900 rounded-full h-2 overflow-hidden border border-gray-700">
+                          <div className="w-full bg-gray-950 rounded-full h-2.5 overflow-hidden border border-gray-800/50 shadow-inner">
                             <div 
-                              className={cn("h-full transition-all duration-1000", isCompleted ? "bg-green-500" : "bg-orange-500")}
+                              className={cn("h-full transition-all duration-1000 rounded-full", isCompleted ? "bg-gradient-to-r from-emerald-500 to-green-400" : "bg-gradient-to-r from-orange-500 to-amber-400")}
                               style={{ width: `${progress}%` }}
                             />
                           </div>
@@ -2506,7 +2552,7 @@ export default function App() {
                                   };
                                 });
                               }}
-                              className="w-full mt-2 py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg text-sm transition-colors"
+                              className="w-full mt-3 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-black rounded-xl text-sm transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.4)] active:scale-95 border border-emerald-400/50 tracking-wider"
                             >
                               報酬を受け取る
                             </button>
@@ -2541,7 +2587,7 @@ export default function App() {
                               ]
                             }));
                           }}
-                          className="w-full mt-2 py-2 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg text-sm transition-colors"
+                          className="w-full mt-3 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 font-black rounded-xl text-sm transition-all duration-300 border border-gray-700/50 shadow-md active:scale-95 tracking-wider"
                         >
                           派遣する
                         </button>
@@ -2554,38 +2600,39 @@ export default function App() {
           )}
 
           {activeTab === 'COLLECTION' && (
-            <div className="flex-1 flex flex-col items-center p-4 space-y-4 overflow-y-auto overscroll-contain">
+            <div className="flex-1 flex flex-col items-center p-4 space-y-4 overflow-y-auto hide-scrollbar">
               <div className="w-full max-w-sm flex justify-between items-center mb-2 shrink-0">
-                <h2 className="text-2xl font-black text-white flex items-center drop-shadow-md">
+                <h2 className="text-2xl font-black text-white flex items-center drop-shadow-md font-mono tracking-wider">
                   <BookOpen size={24} className="mr-2 text-orange-400" /> 図鑑
                 </h2>
-                <div className="text-gray-400 text-sm font-bold bg-gray-800 px-3 py-1 rounded-full border border-gray-700">
-                  {gameState.unlockedHeroes.length} / {HEROES.length}
+                <div className="text-gray-300 text-sm font-bold bg-gray-900/80 px-3 py-1.5 rounded-xl border border-gray-700/50 shadow-inner font-mono">
+                  <span className="text-orange-400">{gameState.unlockedHeroes.length}</span> / {HEROES.length}
                 </div>
               </div>
               
               {/* Collection Bonus Summary */}
-              <div className="w-full max-w-sm bg-gradient-to-r from-orange-900/50 to-yellow-900/50 border border-orange-500/30 rounded-xl p-3 shrink-0 shadow-lg">
-                <h3 className="text-sm font-bold text-orange-300 mb-1 flex items-center">
-                  <Sparkles size={14} className="mr-1" /> 図鑑ボーナス (全体DPS上昇)
+              <div className="w-full max-w-sm bg-gradient-to-br from-orange-950/80 to-yellow-950/80 border border-orange-500/30 rounded-2xl p-4 shrink-0 shadow-[0_4px_20px_rgba(249,115,22,0.15)] relative overflow-hidden backdrop-blur-sm">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl pointer-events-none -mr-10 -mt-10" />
+                <h3 className="text-sm font-black text-orange-300 mb-2 flex items-center tracking-widest relative z-10">
+                  <Sparkles size={16} className="mr-1.5" /> 図鑑ボーナス <span className="text-[10px] text-orange-400/80 ml-2 font-normal">(全体DPS上昇)</span>
                 </h3>
-                <div className="flex justify-between text-xs text-gray-300">
+                <div className="flex justify-between text-xs text-gray-300 relative z-10 font-medium">
                   <span>解放ボーナス ({gameState.unlockedHeroes.length}体):</span>
-                  <span className="text-white font-bold">+{gameState.unlockedHeroes.length}%</span>
+                  <span className="text-white font-bold font-mono">+{gameState.unlockedHeroes.length}%</span>
                 </div>
-                <div className="flex justify-between text-xs text-gray-300 mt-1">
+                <div className="flex justify-between text-xs text-gray-300 mt-1.5 relative z-10 font-medium">
                   <span>覚醒ボーナス (計{Object.values(gameState.heroAwakenings || {}).reduce((a, b) => a + b, 0)}覚醒):</span>
-                  <span className="text-white font-bold">+{Object.values(gameState.heroAwakenings || {}).reduce((a, b) => a + b, 0) * 2}%</span>
+                  <span className="text-white font-bold font-mono">+{Object.values(gameState.heroAwakenings || {}).reduce((a, b) => a + b, 0) * 2}%</span>
                 </div>
-                <div className="flex justify-between text-sm text-orange-400 font-black mt-2 pt-2 border-t border-orange-500/30">
+                <div className="flex justify-between text-sm text-orange-400 font-black mt-3 pt-3 border-t border-orange-500/30 relative z-10">
                   <span>合計ボーナス:</span>
-                  <span>+{gameState.unlockedHeroes.length + (Object.values(gameState.heroAwakenings || {}).reduce((a, b) => a + b, 0) * 2)}%</span>
+                  <span className="font-mono text-lg drop-shadow-[0_0_5px_rgba(251,146,60,0.5)]">+{gameState.unlockedHeroes.length + (Object.values(gameState.heroAwakenings || {}).reduce((a, b) => a + b, 0) * 2)}%</span>
                 </div>
               </div>
 
-              <p className="text-xs text-gray-400 w-full max-w-sm mb-2 shrink-0">獲得したヒーローの詳細を確認できます。解放・覚醒で全体DPSが上昇します。</p>
+              <p className="text-[10px] text-gray-400 w-full max-w-sm mb-2 shrink-0 font-bold tracking-widest text-center">獲得したヒーローの詳細を確認できます。解放・覚醒で全体DPSが上昇します。</p>
               
-              <div className="w-full max-w-sm grid grid-cols-4 gap-2 shrink-0">
+              <div className="w-full max-w-sm grid grid-cols-4 gap-2.5 shrink-0">
                 {HEROES.map(hero => {
                   const isUnlocked = gameState.unlockedHeroes.includes(hero.id);
                   const souls = gameState.heroSouls?.[hero.id] || 0;
@@ -2617,31 +2664,31 @@ export default function App() {
                         }
                       }}
                       className={cn(
-                        "aspect-square rounded-lg flex flex-col items-center justify-center border p-1 relative overflow-hidden cursor-pointer transition-transform hover:scale-105 active:scale-95",
-                        isUnlocked ? "bg-gray-800 border-gray-600 shadow-sm" : "bg-gray-900 border-gray-800 opacity-50 grayscale cursor-not-allowed",
-                        canAwaken ? "ring-2 ring-yellow-400 ring-offset-1 ring-offset-gray-900 animate-pulse" : ""
+                        "aspect-square rounded-xl flex flex-col items-center justify-center border relative overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.05] active:scale-95",
+                        isUnlocked ? "bg-gray-800/80 border-gray-600/50 shadow-md hover:bg-gray-700/80" : "bg-gray-900/50 border-gray-800/50 opacity-40 grayscale cursor-not-allowed",
+                        canAwaken ? "ring-2 ring-yellow-400 ring-offset-2 ring-offset-gray-950 animate-pulse shadow-[0_0_15px_rgba(250,204,21,0.4)]" : ""
                       )}
                     >
-                      <div className="text-2xl mb-1 relative">
+                      <div className="text-3xl mb-1 relative drop-shadow-md">
                         {hero.emoji}
                         {awakeningLevel > 0 && (
-                          <div className="absolute -top-1 -right-2 bg-yellow-500 text-black text-[8px] font-black px-1 rounded-full border border-yellow-200 shadow-sm">
-                            +{awakeningLevel}
+                          <div className="absolute -top-1.5 -right-2.5 bg-gradient-to-br from-yellow-400 to-yellow-600 text-yellow-950 text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full border border-yellow-200 shadow-sm font-mono">
+                            {awakeningLevel}
                           </div>
                         )}
                       </div>
                       {isUnlocked && (
                         <>
-                          <div className={cn("text-[9px] font-bold", RARITY_COLORS[hero.rarity])}>{hero.rarity}</div>
-                          <div className="text-[8px] text-gray-300 truncate w-full text-center">{hero.name}</div>
+                          <div className={cn("text-[10px] font-black tracking-wider", RARITY_COLORS[hero.rarity].replace('bg-', 'text-').replace('border-', 'text-').replace('100', '400').replace('200', '400').replace('300', '400'))}>{hero.rarity}</div>
+                          <div className="text-[9px] text-gray-300 truncate w-full text-center font-bold px-1">{hero.name}</div>
                           {awakeningLevel < 5 && (
-                            <div className="w-full bg-gray-900 h-1 mt-1 rounded-full overflow-hidden">
-                              <div className="bg-blue-400 h-full" style={{ width: `${Math.min(100, (souls / soulsNeeded) * 100)}%` }} />
+                            <div className="w-10/12 bg-gray-900 h-1.5 mt-1.5 rounded-full overflow-hidden shadow-inner border border-gray-700/50">
+                              <div className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full" style={{ width: `${Math.min(100, (souls / soulsNeeded) * 100)}%` }} />
                             </div>
                           )}
                         </>
                       )}
-                      {!isUnlocked && <div className="text-xs text-gray-600 font-bold">?</div>}
+                      {!isUnlocked && <div className="text-xl text-gray-700 font-black font-mono">?</div>}
                     </div>
                   );
                 })}
@@ -2649,33 +2696,38 @@ export default function App() {
             </div>
           )}
           {activeTab === 'LEADERBOARD' && (
-            <div className="flex-1 flex flex-col items-center p-4 overflow-y-auto overscroll-contain">
-              <h2 className="text-2xl font-black text-white mb-6 flex items-center justify-center tracking-widest shrink-0">
+            <div className="flex-1 flex flex-col items-center p-4 overflow-y-auto hide-scrollbar">
+              <h2 className="text-2xl font-black text-white mb-6 flex items-center justify-center tracking-widest shrink-0 drop-shadow-md font-mono">
                 <Trophy className="mr-2 text-pink-400" /> リーダーボード
               </h2>
-              <div className="w-full max-w-sm space-y-3 shrink-0">
+              <div className="w-full max-w-sm space-y-3.5 shrink-0">
                 {leaderboard.length > 0 ? (
                   leaderboard.map((entry, index) => (
-                    <div key={entry.id} className="bg-gray-800 p-4 rounded-xl border border-gray-700 flex items-center justify-between">
+                    <div key={entry.id} className={cn(
+                      "glass-panel p-4 rounded-2xl border flex items-center justify-between transition-all duration-300 hover:scale-[1.02]",
+                      index === 0 ? "border-yellow-500/50 bg-yellow-950/20 shadow-[0_0_15px_rgba(250,204,21,0.2)]" :
+                      index === 1 ? "border-gray-400/50 bg-gray-800/40" :
+                      index === 2 ? "border-orange-500/50 bg-orange-950/20" : "border-gray-700/50"
+                    )}>
                       <div className="flex items-center space-x-4">
                         <div className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm",
-                          index === 0 ? "bg-yellow-500 text-black" :
-                          index === 1 ? "bg-gray-300 text-black" :
-                          index === 2 ? "bg-orange-600 text-white" : "bg-gray-700 text-gray-300"
+                          "w-10 h-10 rounded-full flex items-center justify-center font-black text-lg shadow-inner border",
+                          index === 0 ? "bg-gradient-to-br from-yellow-300 to-yellow-600 text-yellow-950 border-yellow-200" :
+                          index === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500 text-gray-900 border-gray-200" :
+                          index === 2 ? "bg-gradient-to-br from-orange-400 to-orange-700 text-orange-950 border-orange-300" : "bg-gray-800 text-gray-400 border-gray-700"
                         )}>
                           {index + 1}
                         </div>
-                        <span className="font-bold text-white truncate max-w-[150px]">{entry.name}</span>
+                        <span className="font-bold text-white truncate max-w-[140px] tracking-wide">{entry.name}</span>
                       </div>
                       <div className="text-right">
-                        <div className="text-xs text-gray-400">到達ステージ</div>
-                        <div className="font-black text-pink-400 text-lg">{entry.stage}</div>
+                        <div className="text-[10px] text-gray-400 font-medium tracking-wider mb-0.5">到達ステージ</div>
+                        <div className="font-black text-pink-400 text-xl font-mono drop-shadow-[0_0_5px_rgba(244,114,182,0.5)]">{entry.stage}</div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center text-gray-500 py-10">
+                  <div className="text-center text-gray-500 py-12 glass-panel rounded-2xl border border-gray-700/50 font-medium tracking-wider">
                     データを読み込み中、またはデータがありません。
                   </div>
                 )}
@@ -2683,17 +2735,17 @@ export default function App() {
             </div>
           )}
           {activeTab === 'INVENTORY' && (
-            <div className="flex-1 flex flex-col items-center p-4 overflow-y-auto overscroll-contain">
-              <h2 className="text-2xl font-black text-white mb-6 flex items-center justify-center tracking-widest shrink-0">
-                <ShieldAlert className="mr-2 text-emerald-400" /> 鍛冶屋 (SMITHY)
+            <div className="flex-1 flex flex-col items-center p-4 overflow-y-auto hide-scrollbar">
+              <h2 className="text-2xl font-black text-white mb-6 flex items-center justify-center tracking-widest shrink-0 drop-shadow-md font-mono">
+                <ShieldAlert className="mr-2 text-emerald-400" /> 鍛冶屋 <span className="text-[10px] text-emerald-400/80 ml-2 font-normal">(SMITHY)</span>
               </h2>
 
-              <div className="flex space-x-2 mb-6 w-full max-w-md shrink-0">
+              <div className="w-full max-w-md flex bg-gray-900/80 rounded-xl p-1.5 mb-6 shrink-0 border border-gray-700/50 shadow-inner">
                 <button
                   onClick={() => setInventoryTab('LIST')}
                   className={cn(
-                    "flex-1 py-2 rounded-lg font-bold text-sm transition-colors",
-                    inventoryTab === 'LIST' ? "bg-emerald-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                    "flex-1 py-2.5 text-sm font-black rounded-lg transition-all duration-300 tracking-wider",
+                    inventoryTab === 'LIST' ? "bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-md" : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
                   )}
                 >
                   装備一覧
@@ -2704,19 +2756,19 @@ export default function App() {
                     setSynthSelection([]);
                   }}
                   className={cn(
-                    "flex-1 py-2 rounded-lg font-bold text-sm transition-colors",
-                    inventoryTab === 'SYNTHESIS' ? "bg-emerald-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                    "flex-1 py-2.5 text-sm font-black rounded-lg transition-all duration-300 tracking-wider",
+                    inventoryTab === 'SYNTHESIS' ? "bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-md" : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
                   )}
                 >
                   合成
                 </button>
               </div>
 
-              <div className="w-full max-w-md space-y-3 shrink-0">
+              <div className="w-full max-w-md space-y-3.5 shrink-0">
                 {inventoryTab === 'LIST' && (
                   <>
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="text-gray-400 text-sm">所持数: {gameState.inventory?.length || 0}</span>
+                    <div className="flex justify-between items-center mb-4 px-1">
+                      <span className="text-gray-300 text-sm font-bold tracking-wider flex items-center">所持数: <span className="text-white ml-2 font-mono bg-gray-800 px-2 py-0.5 rounded border border-gray-700">{gameState.inventory?.length || 0}</span></span>
                       <button
                         onClick={() => {
                           setGameState(prev => {
@@ -2744,35 +2796,37 @@ export default function App() {
                             };
                           });
                         }}
-                        className="px-3 py-1 bg-red-900/50 hover:bg-red-800/50 border border-red-500/50 text-red-400 text-xs font-bold rounded-lg transition-colors"
+                        className="px-4 py-2 bg-gradient-to-r from-red-900/80 to-rose-900/80 hover:from-red-800 hover:to-rose-800 border border-red-500/50 text-red-100 text-xs font-black rounded-xl transition-all duration-300 shadow-md active:scale-95 tracking-wider"
                       >
                         N/R一括売却
                       </button>
                     </div>
                     {(!gameState.inventory || gameState.inventory.length === 0) ? (
-                      <div className="text-center text-gray-500 py-10 bg-gray-800/50 rounded-xl border border-gray-700">
-                        装備を持っていません。<br/>ボスを倒してドロップを狙いましょう！
+                      <div className="text-center text-gray-500 py-12 glass-panel rounded-2xl border border-gray-700/50 font-medium tracking-wider">
+                        装備を持っていません。<br/><span className="text-gray-400 mt-2 inline-block">ボスを倒してドロップを狙いましょう！</span>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                         {gameState.inventory.map((eq) => (
-                          <div key={eq.id} className="bg-gray-800 p-3 rounded-xl border border-gray-700 flex flex-col relative">
-                            <div className="flex justify-between items-start mb-2">
+                          <div key={eq.id} className="glass-panel p-4 rounded-2xl border border-gray-700/50 flex flex-col relative shadow-lg hover:border-gray-600/50 transition-colors">
+                            <div className="flex justify-between items-start mb-3">
                               <div className="flex items-center">
                                 <span className={cn(
-                                  "text-xs font-bold px-1.5 py-0.5 rounded mr-2",
-                                  eq.rarity === 'UR' ? "bg-red-500/20 text-red-400 border border-red-500/50" :
-                                  eq.rarity === 'SSR' ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/50" :
-                                  eq.rarity === 'SR' ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" :
-                                  eq.rarity === 'R' ? "bg-blue-500/20 text-blue-400 border border-blue-500/50" :
-                                  "bg-gray-500/20 text-gray-400 border border-gray-500/50"
+                                  "text-[10px] font-black px-2 py-0.5 rounded-md mr-2 tracking-wider shadow-inner",
+                                  eq.rarity === 'UR' ? "bg-red-950/50 text-red-400 border border-red-500/50" :
+                                  eq.rarity === 'SSR' ? "bg-yellow-950/50 text-yellow-400 border border-yellow-500/50" :
+                                  eq.rarity === 'SR' ? "bg-purple-950/50 text-purple-400 border border-purple-500/50" :
+                                  eq.rarity === 'R' ? "bg-blue-950/50 text-blue-400 border border-blue-500/50" :
+                                  "bg-gray-800/80 text-gray-400 border border-gray-600/50"
                                 )}>{eq.rarity}</span>
-                                <span className="font-bold text-white text-sm">{eq.name}</span>
+                                <span className="font-black text-white text-sm tracking-wide">{eq.name}</span>
                               </div>
-                              <span className="text-[10px] text-gray-500 uppercase">{eq.type}</span>
+                              <span className="text-[9px] text-gray-500 uppercase font-black bg-gray-900/80 px-1.5 py-0.5 rounded border border-gray-800">{eq.type}</span>
                             </div>
-                            <div className="text-xs text-emerald-400 mb-1">DPS +{formatNumber(eq.dpsBonus)}</div>
-                            <div className="text-xs text-emerald-400 mb-3">DPS x{eq.dpsMultiplier.toFixed(2)}</div>
+                            <div className="bg-gray-900/50 rounded-lg p-2 mb-3 border border-gray-800/50">
+                              <div className="text-xs text-emerald-400 mb-1 font-mono font-bold">DPS +{formatNumber(eq.dpsBonus)}</div>
+                              <div className="text-xs text-emerald-400 font-mono font-bold">DPS x{eq.dpsMultiplier.toFixed(2)}</div>
+                            </div>
                             <button 
                               onClick={() => {
                                 setGameState(prev => {
@@ -2784,9 +2838,9 @@ export default function App() {
                                   };
                                 });
                               }}
-                              className="mt-auto w-full py-1.5 bg-red-900/50 hover:bg-red-800 text-red-200 text-xs rounded border border-red-700/50 transition-colors"
+                              className="mt-auto w-full py-2 bg-gray-800/80 hover:bg-red-900/40 text-gray-400 hover:text-red-300 text-xs font-black rounded-xl border border-gray-700/50 hover:border-red-800/50 transition-all duration-300 tracking-wider active:scale-95 flex justify-center items-center"
                             >
-                              売却 (+{formatNumber(eq.rarity === 'UR' ? 10000 : eq.rarity === 'SSR' ? 2000 : eq.rarity === 'SR' ? 500 : eq.rarity === 'R' ? 100 : 20)}G)
+                              売却 <span className="text-[10px] font-mono ml-2">(+{formatNumber(eq.rarity === 'UR' ? 10000 : eq.rarity === 'SSR' ? 2000 : eq.rarity === 'SR' ? 500 : eq.rarity === 'R' ? 100 : 20)}G)</span>
                             </button>
                           </div>
                         ))}
@@ -2797,16 +2851,17 @@ export default function App() {
 
                 {inventoryTab === 'SYNTHESIS' && (
                   <>
-                    <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700 mb-4">
-                      <p className="text-sm text-gray-300 mb-2">同じレアリティ・部位の装備を3つ選んで、1つ上のレアリティに合成します。</p>
-                      <div className="flex justify-between items-center mt-4">
-                        <span className="text-gray-400 text-sm">選択中: {synthSelection.length}/3</span>
+                    <div className="glass-panel p-5 rounded-2xl border border-gray-700/50 mb-4 shadow-lg relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                      <p className="text-xs text-gray-300 mb-3 font-medium leading-relaxed relative z-10">同じレアリティ・部位の装備を<span className="text-yellow-400 font-bold">3つ</span>選んで、1つ上のレアリティに合成します。</p>
+                      <div className="flex justify-between items-center mt-4 relative z-10">
+                        <span className="text-gray-400 text-sm font-bold tracking-wider flex items-center">選択中: <span className={cn("ml-2 font-mono px-2 py-0.5 rounded border", synthSelection.length === 3 ? "bg-emerald-900/50 text-emerald-400 border-emerald-500/50" : "bg-gray-800 text-white border-gray-700")}>{synthSelection.length}/3</span></span>
                         <div className="flex space-x-2">
                           <button
                             onClick={handleAutoSynthesizeEquipment}
-                            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition-colors flex items-center"
+                            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-xl transition-all duration-300 flex items-center shadow-md active:scale-95 border border-purple-500/50 tracking-wider"
                           >
-                            <Combine size={16} className="mr-1" /> 一括合成
+                            <Combine size={16} className="mr-1.5" /> 一括合成
                           </button>
                           <button
                             disabled={synthSelection.length !== 3}
@@ -2833,7 +2888,12 @@ export default function App() {
                                 setSynthSelection([]);
                               }
                             }}
-                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:text-gray-500 text-white font-bold rounded-lg transition-colors"
+                            className={cn(
+                              "px-4 py-2 font-black text-xs rounded-xl transition-all duration-300 flex items-center tracking-wider",
+                              synthSelection.length === 3 
+                                ? "bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)] active:scale-95 border border-emerald-500/50 animate-pulse" 
+                                : "bg-gray-800/80 text-gray-500 cursor-not-allowed border border-gray-700/50"
+                            )}
                           >
                             合成する
                           </button>
@@ -2841,7 +2901,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       {(gameState.inventory || []).filter(eq => eq.rarity !== 'UR').map((eq) => {
                         const isSelected = synthSelection.includes(eq.id);
                         const canSelect = synthSelection.length < 3 || isSelected;
@@ -2867,30 +2927,32 @@ export default function App() {
                               );
                             }}
                             className={cn(
-                              "p-3 rounded-xl border flex flex-col relative cursor-pointer transition-all",
-                              isSelected ? "bg-emerald-900/30 border-emerald-500" : 
-                              isDisabled ? "bg-gray-900/50 border-gray-800 opacity-50" : 
-                              "bg-gray-800 border-gray-700 hover:border-gray-500"
+                              "p-4 rounded-2xl border flex flex-col relative cursor-pointer transition-all duration-300 shadow-lg",
+                              isSelected ? "bg-emerald-950/40 border-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.2)] scale-[1.02]" : 
+                              isDisabled ? "bg-gray-900/50 border-gray-800/50 opacity-40 grayscale" : 
+                              "glass-panel border-gray-700/50 hover:border-emerald-500/30 hover:bg-gray-800/80"
                             )}
                           >
-                            <div className="flex justify-between items-start mb-2">
+                            <div className="flex justify-between items-start mb-3">
                               <div className="flex items-center">
                                 <span className={cn(
-                                  "text-xs font-bold px-1.5 py-0.5 rounded mr-2",
-                                  eq.rarity === 'SSR' ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/50" :
-                                  eq.rarity === 'SR' ? "bg-purple-500/20 text-purple-400 border border-purple-500/50" :
-                                  eq.rarity === 'R' ? "bg-blue-500/20 text-blue-400 border border-blue-500/50" :
-                                  "bg-gray-500/20 text-gray-400 border border-gray-500/50"
+                                  "text-[10px] font-black px-2 py-0.5 rounded-md mr-2 tracking-wider shadow-inner",
+                                  eq.rarity === 'SSR' ? "bg-yellow-950/50 text-yellow-400 border border-yellow-500/50" :
+                                  eq.rarity === 'SR' ? "bg-purple-950/50 text-purple-400 border border-purple-500/50" :
+                                  eq.rarity === 'R' ? "bg-blue-950/50 text-blue-400 border border-blue-500/50" :
+                                  "bg-gray-800/80 text-gray-400 border border-gray-600/50"
                                 )}>{eq.rarity}</span>
-                                <span className="font-bold text-white text-sm">{eq.name}</span>
+                                <span className="font-black text-white text-sm tracking-wide">{eq.name}</span>
                               </div>
-                              <span className="text-[10px] text-gray-500 uppercase">{eq.type}</span>
+                              <span className="text-[9px] text-gray-500 uppercase font-black bg-gray-900/80 px-1.5 py-0.5 rounded border border-gray-800">{eq.type}</span>
                             </div>
-                            <div className="text-xs text-emerald-400 mb-1">DPS +{formatNumber(eq.dpsBonus)}</div>
-                            <div className="text-xs text-emerald-400">DPS x{eq.dpsMultiplier.toFixed(2)}</div>
+                            <div className="bg-gray-900/50 rounded-lg p-2 border border-gray-800/50">
+                              <div className="text-xs text-emerald-400 mb-1 font-mono font-bold">DPS +{formatNumber(eq.dpsBonus)}</div>
+                              <div className="text-xs text-emerald-400 font-mono font-bold">DPS x{eq.dpsMultiplier.toFixed(2)}</div>
+                            </div>
                             {isSelected && (
-                              <div className="absolute top-2 right-2 text-emerald-400">
-                                <CheckCircle2 size={16} />
+                              <div className="absolute top-3 right-3 text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)] animate-bounce">
+                                <CheckCircle2 size={20} />
                               </div>
                             )}
                           </div>
@@ -2911,64 +2973,71 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="absolute inset-0 bg-gray-900/95 backdrop-blur-md z-20 flex flex-col p-4 overflow-y-auto overscroll-contain"
+              className="absolute inset-0 bg-gray-950/95 backdrop-blur-xl z-20 flex flex-col p-6 overflow-y-auto hide-scrollbar"
             >
-              <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-2">
-                <h2 className="text-xl font-black text-white">メニュー</h2>
-                <button onClick={() => setIsMenuOpen(false)} className="p-2 bg-gray-800 rounded-full text-gray-400 hover:text-white">
-                  <X size={20} />
+              <div className="flex justify-between items-center mb-8 border-b border-gray-800/50 pb-4">
+                <h2 className="text-2xl font-black text-white tracking-widest font-mono drop-shadow-md">メニュー</h2>
+                <button onClick={() => setIsMenuOpen(false)} className="p-2.5 bg-gray-800/80 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors shadow-inner border border-gray-700/50">
+                  <X size={22} />
                 </button>
               </div>
               
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-5">
                 <button
                   onClick={() => { setActiveTab('TACTICS'); setIsMenuOpen(false); }}
-                  className={cn("flex flex-col items-center justify-center p-4 rounded-2xl border transition-all active:scale-95", activeTab === 'TACTICS' ? "bg-blue-900/40 border-blue-500/50 text-blue-400" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700")}
+                  className={cn("flex flex-col items-center justify-center p-5 rounded-2xl border transition-all duration-300 active:scale-95 shadow-lg relative overflow-hidden group", activeTab === 'TACTICS' ? "bg-blue-950/60 border-blue-500/50 text-blue-400" : "glass-panel border-gray-700/50 text-gray-300 hover:bg-gray-800/80 hover:border-gray-600/50")}
                 >
-                  <Target size={28} className="mb-2" />
-                  <span className="text-xs font-bold">戦術</span>
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Target size={32} className={cn("mb-3 transition-transform group-hover:scale-110", activeTab === 'TACTICS' && "drop-shadow-[0_0_8px_rgba(96,165,250,0.8)]")} />
+                  <span className="text-xs font-black tracking-widest">戦術</span>
                 </button>
                 <button
                   onClick={() => { setActiveTab('MISSIONS'); setIsMenuOpen(false); }}
-                  className={cn("flex flex-col items-center justify-center p-4 rounded-2xl border transition-all active:scale-95", activeTab === 'MISSIONS' ? "bg-blue-900/40 border-blue-500/50 text-blue-400" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700")}
+                  className={cn("flex flex-col items-center justify-center p-5 rounded-2xl border transition-all duration-300 active:scale-95 shadow-lg relative overflow-hidden group", activeTab === 'MISSIONS' ? "bg-blue-950/60 border-blue-500/50 text-blue-400" : "glass-panel border-gray-700/50 text-gray-300 hover:bg-gray-800/80 hover:border-gray-600/50")}
                 >
-                  <ScrollText size={28} className="mb-2" />
-                  <span className="text-xs font-bold">任務</span>
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ScrollText size={32} className={cn("mb-3 transition-transform group-hover:scale-110", activeTab === 'MISSIONS' && "drop-shadow-[0_0_8px_rgba(96,165,250,0.8)]")} />
+                  <span className="text-xs font-black tracking-widest">任務</span>
                 </button>
                 <button
                   onClick={() => { setActiveTab('ARTIFACTS'); setIsMenuOpen(false); }}
-                  className={cn("flex flex-col items-center justify-center p-4 rounded-2xl border transition-all active:scale-95", activeTab === 'ARTIFACTS' ? "bg-purple-900/40 border-purple-500/50 text-purple-400" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700")}
+                  className={cn("flex flex-col items-center justify-center p-5 rounded-2xl border transition-all duration-300 active:scale-95 shadow-lg relative overflow-hidden group", activeTab === 'ARTIFACTS' ? "bg-purple-950/60 border-purple-500/50 text-purple-400" : "glass-panel border-gray-700/50 text-gray-300 hover:bg-gray-800/80 hover:border-gray-600/50")}
                 >
-                  <Crown size={28} className="mb-2" />
-                  <span className="text-xs font-bold">遺物</span>
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Crown size={32} className={cn("mb-3 transition-transform group-hover:scale-110", activeTab === 'ARTIFACTS' && "drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]")} />
+                  <span className="text-xs font-black tracking-widest">遺物</span>
                 </button>
                 <button
                   onClick={() => { setActiveTab('EXPEDITIONS'); setIsMenuOpen(false); }}
-                  className={cn("flex flex-col items-center justify-center p-4 rounded-2xl border transition-all active:scale-95", activeTab === 'EXPEDITIONS' ? "bg-orange-900/40 border-orange-500/50 text-orange-400" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700")}
+                  className={cn("flex flex-col items-center justify-center p-5 rounded-2xl border transition-all duration-300 active:scale-95 shadow-lg relative overflow-hidden group", activeTab === 'EXPEDITIONS' ? "bg-orange-950/60 border-orange-500/50 text-orange-400" : "glass-panel border-gray-700/50 text-gray-300 hover:bg-gray-800/80 hover:border-gray-600/50")}
                 >
-                  <Map size={28} className="mb-2" />
-                  <span className="text-xs font-bold">派遣</span>
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Map size={32} className={cn("mb-3 transition-transform group-hover:scale-110", activeTab === 'EXPEDITIONS' && "drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]")} />
+                  <span className="text-xs font-black tracking-widest">派遣</span>
                 </button>
                 <button
                   onClick={() => { setActiveTab('PRESTIGE'); setIsMenuOpen(false); }}
-                  className={cn("flex flex-col items-center justify-center p-4 rounded-2xl border transition-all active:scale-95", activeTab === 'PRESTIGE' ? "bg-cyan-900/40 border-cyan-500/50 text-cyan-400" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700")}
+                  className={cn("flex flex-col items-center justify-center p-5 rounded-2xl border transition-all duration-300 active:scale-95 shadow-lg relative overflow-hidden group", activeTab === 'PRESTIGE' ? "bg-cyan-950/60 border-cyan-500/50 text-cyan-400" : "glass-panel border-gray-700/50 text-gray-300 hover:bg-gray-800/80 hover:border-gray-600/50")}
                 >
-                  <ArrowUpCircle size={28} className="mb-2" />
-                  <span className="text-xs font-bold">転生</span>
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowUpCircle size={32} className={cn("mb-3 transition-transform group-hover:scale-110", activeTab === 'PRESTIGE' && "drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]")} />
+                  <span className="text-xs font-black tracking-widest">転生</span>
                 </button>
                 <button
                   onClick={() => { setActiveTab('LEADERBOARD'); setIsMenuOpen(false); }}
-                  className={cn("flex flex-col items-center justify-center p-4 rounded-2xl border transition-all active:scale-95", activeTab === 'LEADERBOARD' ? "bg-pink-900/40 border-pink-500/50 text-pink-400" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700")}
+                  className={cn("flex flex-col items-center justify-center p-5 rounded-2xl border transition-all duration-300 active:scale-95 shadow-lg relative overflow-hidden group", activeTab === 'LEADERBOARD' ? "bg-pink-950/60 border-pink-500/50 text-pink-400" : "glass-panel border-gray-700/50 text-gray-300 hover:bg-gray-800/80 hover:border-gray-600/50")}
                 >
-                  <Trophy size={28} className="mb-2" />
-                  <span className="text-[10px] sm:text-xs font-bold">ランキング</span>
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Trophy size={32} className={cn("mb-3 transition-transform group-hover:scale-110", activeTab === 'LEADERBOARD' && "drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]")} />
+                  <span className="text-[10px] sm:text-xs font-black tracking-widest">ランキング</span>
                 </button>
                 <button
                   onClick={() => { setActiveTab('INVENTORY'); setIsMenuOpen(false); }}
-                  className={cn("flex flex-col items-center justify-center p-4 rounded-2xl border transition-all active:scale-95", activeTab === 'INVENTORY' ? "bg-emerald-900/40 border-emerald-500/50 text-emerald-400" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700")}
+                  className={cn("flex flex-col items-center justify-center p-5 rounded-2xl border transition-all duration-300 active:scale-95 shadow-lg relative overflow-hidden group", activeTab === 'INVENTORY' ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-400" : "glass-panel border-gray-700/50 text-gray-300 hover:bg-gray-800/80 hover:border-gray-600/50")}
                 >
-                  <ShieldAlert size={28} className="mb-2" />
-                  <span className="text-xs font-bold">装備</span>
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ShieldAlert size={32} className={cn("mb-3 transition-transform group-hover:scale-110", activeTab === 'INVENTORY' && "drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]")} />
+                  <span className="text-xs font-black tracking-widest">装備</span>
                 </button>
               </div>
             </motion.div>
@@ -2976,41 +3045,41 @@ export default function App() {
         </AnimatePresence>
 
         {/* Bottom Navigation */}
-        <div className="bg-gray-900 border-t border-gray-800 flex justify-around p-2 pb-safe z-30 shrink-0">
+        <div className="glass-panel border-t-0 border-x-0 rounded-t-2xl flex justify-around p-2 pb-safe z-30 shrink-0 mx-2 mb-2 shadow-[0_-5px_15px_rgba(0,0,0,0.3)]">
           <button
             onClick={() => { setActiveTab('BATTLE'); setIsMenuOpen(false); }}
-            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-colors", activeTab === 'BATTLE' && !isMenuOpen ? "text-red-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
+            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-all duration-300", activeTab === 'BATTLE' && !isMenuOpen ? "text-red-400 bg-red-950/50 shadow-inner scale-105" : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/30")}
           >
-            <Sword size={20} className="mb-1" />
-            <span className="text-[9px] font-bold tracking-wider">バトル</span>
+            <Sword size={22} className={cn("mb-1", activeTab === 'BATTLE' && !isMenuOpen && "drop-shadow-[0_0_8px_rgba(248,113,113,0.8)]")} />
+            <span className="text-[10px] font-bold tracking-wider font-mono">バトル</span>
           </button>
           <button
             onClick={() => { setActiveTab('GACHA'); setIsMenuOpen(false); }}
-            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-colors", activeTab === 'GACHA' && !isMenuOpen ? "text-yellow-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
+            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-all duration-300", activeTab === 'GACHA' && !isMenuOpen ? "text-yellow-400 bg-yellow-950/50 shadow-inner scale-105" : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/30")}
           >
-            <Sparkles size={20} className="mb-1" />
-            <span className="text-[9px] font-bold tracking-wider">ガチャ</span>
+            <Sparkles size={22} className={cn("mb-1", activeTab === 'GACHA' && !isMenuOpen && "drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]")} />
+            <span className="text-[10px] font-bold tracking-wider font-mono">ガチャ</span>
           </button>
           <button
             onClick={() => { setActiveTab('UPGRADES'); setIsMenuOpen(false); }}
-            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-colors", activeTab === 'UPGRADES' && !isMenuOpen ? "text-green-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
+            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-all duration-300", activeTab === 'UPGRADES' && !isMenuOpen ? "text-emerald-400 bg-emerald-950/50 shadow-inner scale-105" : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/30")}
           >
-            <TrendingUp size={20} className="mb-1" />
-            <span className="text-[9px] font-bold tracking-wider">強化</span>
+            <TrendingUp size={22} className={cn("mb-1", activeTab === 'UPGRADES' && !isMenuOpen && "drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]")} />
+            <span className="text-[10px] font-bold tracking-wider font-mono">強化</span>
           </button>
           <button
             onClick={() => { setActiveTab('COLLECTION'); setIsMenuOpen(false); }}
-            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-colors", activeTab === 'COLLECTION' && !isMenuOpen ? "text-orange-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
+            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-all duration-300", activeTab === 'COLLECTION' && !isMenuOpen ? "text-orange-400 bg-orange-950/50 shadow-inner scale-105" : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/30")}
           >
-            <BookOpen size={20} className="mb-1" />
-            <span className="text-[9px] font-bold tracking-wider">図鑑</span>
+            <BookOpen size={22} className={cn("mb-1", activeTab === 'COLLECTION' && !isMenuOpen && "drop-shadow-[0_0_8px_rgba(251,146,60,0.8)]")} />
+            <span className="text-[10px] font-bold tracking-wider font-mono">図鑑</span>
           </button>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-colors", isMenuOpen ? "text-blue-400 bg-gray-800" : "text-gray-500 hover:text-gray-300")}
+            className={cn("flex flex-col items-center justify-center p-2 rounded-xl flex-1 transition-all duration-300", isMenuOpen ? "text-blue-400 bg-blue-950/50 shadow-inner scale-105" : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/30")}
           >
-            <LayoutGrid size={20} className="mb-1" />
-            <span className="text-[9px] font-bold tracking-wider">メニュー</span>
+            <LayoutGrid size={22} className={cn("mb-1", isMenuOpen && "drop-shadow-[0_0_8px_rgba(96,165,250,0.8)]")} />
+            <span className="text-[10px] font-bold tracking-wider font-mono">メニュー</span>
           </button>
         </div>
 
@@ -3027,14 +3096,14 @@ export default function App() {
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[80vh]"
+                className="glass-panel border border-gray-700/50 rounded-3xl p-6 max-w-sm w-full shadow-[0_0_30px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col max-h-[80vh]"
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-black text-white flex items-center">
+                <div className="flex justify-between items-center mb-6 relative z-10">
+                  <h2 className="text-xl font-black text-white flex items-center tracking-widest drop-shadow-md">
                     <ShieldAlert className="mr-2 text-emerald-400" /> 装備変更
                   </h2>
-                  <button onClick={() => { setIsEquipmentModalOpen(false); setSelectedEquipmentSlot(null); }} className="text-gray-400 hover:text-white">
-                    <X size={24} />
+                  <button onClick={() => { setIsEquipmentModalOpen(false); setSelectedEquipmentSlot(null); }} className="text-gray-400 hover:text-white bg-gray-800/50 p-1.5 rounded-full transition-colors border border-gray-700/50 hover:bg-gray-700/50">
+                    <X size={20} />
                   </button>
                 </div>
 
@@ -3045,19 +3114,19 @@ export default function App() {
                   const def = HEROES.find(h => h.id === inst.heroId)!;
 
                   return (
-                    <div className="flex flex-col space-y-4 overflow-y-auto no-scrollbar">
-                      <div className="flex items-center space-x-4 bg-gray-800 p-3 rounded-xl border border-gray-700">
-                        <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center text-2xl border-2", RARITY_COLORS[def.rarity])}>
+                    <div className="flex flex-col space-y-4 overflow-y-auto hide-scrollbar relative z-10">
+                      <div className="flex items-center space-x-4 bg-gray-900/60 p-4 rounded-2xl border border-gray-700/50 shadow-inner">
+                        <div className={cn("w-14 h-14 rounded-xl flex items-center justify-center text-3xl border-2 shadow-lg", RARITY_COLORS[def.rarity])}>
                           {def.emoji}
                         </div>
                         <div>
-                          <div className="font-bold text-white">{def.name}</div>
-                          <div className="text-xs text-gray-400">Lv.{inst.level || 1}</div>
+                          <div className="font-black text-white text-lg tracking-wide">{def.name}</div>
+                          <div className="text-xs text-gray-400 font-mono font-bold bg-gray-800/80 inline-block px-2 py-0.5 rounded border border-gray-700/50 mt-1">Lv.{inst.level || 1}</div>
                         </div>
                       </div>
 
                       {/* Equipment Slots */}
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-3 gap-3">
                         {(['weapon', 'armor', 'accessory'] as const).map(slot => {
                           const eq = inst.equipment?.[slot];
                           const isSelected = selectedEquipmentSlot === slot;
@@ -3066,25 +3135,25 @@ export default function App() {
                               key={slot}
                               onClick={() => setSelectedEquipmentSlot(isSelected ? null : slot)}
                               className={cn(
-                                "flex flex-col items-center p-2 rounded-xl border transition-colors",
-                                isSelected ? "bg-emerald-900/40 border-emerald-500" : "bg-gray-800 border-gray-700 hover:bg-gray-700"
+                                "flex flex-col items-center p-3 rounded-2xl border transition-all duration-300 shadow-md relative overflow-hidden",
+                                isSelected ? "bg-emerald-950/60 border-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.3)] scale-[1.02]" : "glass-panel border-gray-700/50 hover:bg-gray-800/80 hover:border-gray-600/50"
                               )}
                             >
-                              <div className="text-xs text-gray-400 mb-1 uppercase">{slot}</div>
+                              <div className="text-[10px] text-gray-400 mb-2 uppercase font-black tracking-widest">{slot}</div>
                               {eq ? (
-                                <div className="flex flex-col items-center">
+                                <div className="flex flex-col items-center w-full">
                                   <span className={cn(
-                                    "text-[10px] font-bold px-1 rounded mb-1",
-                                    eq.rarity === 'UR' ? "bg-red-500/20 text-red-400" :
-                                    eq.rarity === 'SSR' ? "bg-yellow-500/20 text-yellow-400" :
-                                    eq.rarity === 'SR' ? "bg-purple-500/20 text-purple-400" :
-                                    eq.rarity === 'R' ? "bg-blue-500/20 text-blue-400" :
-                                    "bg-gray-500/20 text-gray-400"
+                                    "text-[10px] font-black px-1.5 py-0.5 rounded mb-1.5 shadow-inner border",
+                                    eq.rarity === 'UR' ? "bg-red-950/50 text-red-400 border-red-500/50" :
+                                    eq.rarity === 'SSR' ? "bg-yellow-950/50 text-yellow-400 border-yellow-500/50" :
+                                    eq.rarity === 'SR' ? "bg-purple-950/50 text-purple-400 border-purple-500/50" :
+                                    eq.rarity === 'R' ? "bg-blue-950/50 text-blue-400 border-blue-500/50" :
+                                    "bg-gray-800/80 text-gray-400 border-gray-600/50"
                                   )}>{eq.rarity}</span>
-                                  <span className="text-[10px] text-white truncate w-full text-center">{eq.name}</span>
+                                  <span className="text-[10px] text-white truncate w-full text-center font-bold">{eq.name}</span>
                                 </div>
                               ) : (
-                                <div className="text-gray-600 text-sm py-2">未装備</div>
+                                <div className="text-gray-600 text-xs py-2 font-medium">未装備</div>
                               )}
                             </button>
                           );
@@ -3102,24 +3171,24 @@ export default function App() {
                           let rarityName = "";
                           let colorClass = "";
                           
-                          if (minRarityLevel >= 5) { rarityName = "UR"; bonusText = "+300%"; colorClass = "text-red-400 border-red-500/50 bg-red-900/20"; }
-                          else if (minRarityLevel >= 4) { rarityName = "SSR"; bonusText = "+100%"; colorClass = "text-yellow-400 border-yellow-500/50 bg-yellow-900/20"; }
-                          else if (minRarityLevel >= 3) { rarityName = "SR"; bonusText = "+30%"; colorClass = "text-purple-400 border-purple-500/50 bg-purple-900/20"; }
-                          else if (minRarityLevel >= 2) { rarityName = "R"; bonusText = "+15%"; colorClass = "text-blue-400 border-blue-500/50 bg-blue-900/20"; }
+                          if (minRarityLevel >= 5) { rarityName = "UR"; bonusText = "+300%"; colorClass = "text-red-400 border-red-500/50 bg-red-950/40 shadow-[0_0_10px_rgba(239,68,68,0.2)]"; }
+                          else if (minRarityLevel >= 4) { rarityName = "SSR"; bonusText = "+100%"; colorClass = "text-yellow-400 border-yellow-500/50 bg-yellow-950/40 shadow-[0_0_10px_rgba(250,204,21,0.2)]"; }
+                          else if (minRarityLevel >= 3) { rarityName = "SR"; bonusText = "+30%"; colorClass = "text-purple-400 border-purple-500/50 bg-purple-950/40 shadow-[0_0_10px_rgba(168,85,247,0.2)]"; }
+                          else if (minRarityLevel >= 2) { rarityName = "R"; bonusText = "+15%"; colorClass = "text-blue-400 border-blue-500/50 bg-blue-950/40 shadow-[0_0_10px_rgba(59,130,246,0.2)]"; }
                           else if (minRarityLevel >= 1) { rarityName = "N"; bonusText = "+5%"; colorClass = "text-gray-300 border-gray-500/50 bg-gray-800/50"; }
 
                           return (
-                            <div className={cn("mt-2 p-2 rounded-lg border flex items-center justify-between shadow-inner", colorClass)}>
+                            <div className={cn("mt-2 p-3 rounded-xl border flex items-center justify-between", colorClass)}>
                               <div className="flex items-center">
-                                <Sparkles size={14} className="mr-2" />
-                                <span className="text-xs font-bold">{rarityName} セットボーナス発動中！</span>
+                                <Sparkles size={16} className="mr-2" />
+                                <span className="text-xs font-black tracking-wider">{rarityName} セットボーナス発動中！</span>
                               </div>
-                              <span className="text-sm font-black">{bonusText} DPS</span>
+                              <span className="text-sm font-black font-mono">{bonusText} DPS</span>
                             </div>
                           );
                         }
                         return (
-                          <div className="mt-2 p-2 rounded-lg border border-gray-700 bg-gray-800/50 flex items-center justify-center text-gray-500 text-xs">
+                          <div className="mt-2 p-3 rounded-xl border border-gray-700/50 bg-gray-900/50 flex items-center justify-center text-gray-500 text-xs font-medium tracking-wider">
                             3部位装備でセットボーナス発動
                           </div>
                         );
@@ -3127,9 +3196,9 @@ export default function App() {
 
                       {/* Inventory List for Selected Slot */}
                       {selectedEquipmentSlot && (
-                        <div className="mt-4 border-t border-gray-800 pt-4 flex-1 overflow-y-auto">
-                          <h3 className="text-sm font-bold text-gray-400 mb-2 uppercase">{selectedEquipmentSlot} 一覧</h3>
-                          <div className="space-y-2">
+                        <div className="mt-4 border-t border-gray-800/50 pt-4 flex-1 overflow-y-auto hide-scrollbar">
+                          <h3 className="text-xs font-black text-gray-400 mb-3 uppercase tracking-widest flex items-center"><span className="bg-gray-800 px-2 py-1 rounded border border-gray-700 mr-2">{selectedEquipmentSlot}</span> 一覧</h3>
+                          <div className="space-y-2.5">
                             {/* Unequip option */}
                             {inst.equipment?.[selectedEquipmentSlot] && (
                               <button
@@ -3152,7 +3221,7 @@ export default function App() {
                                   });
                                   setSelectedEquipmentSlot(null);
                                 }}
-                                className="w-full p-2 bg-red-900/30 hover:bg-red-900/50 border border-red-700/50 rounded-lg text-red-400 text-xs font-bold transition-colors"
+                                className="w-full p-2.5 bg-red-950/40 hover:bg-red-900/60 border border-red-800/50 rounded-xl text-red-400 text-xs font-black transition-all duration-300 active:scale-95 tracking-wider"
                               >
                                 外す
                               </button>
@@ -3160,7 +3229,7 @@ export default function App() {
 
                             {/* Available items */}
                             {(gameState.inventory || []).filter(eq => eq.type === selectedEquipmentSlot).length === 0 ? (
-                              <div className="text-center text-gray-500 text-xs py-4">装備可能なアイテムがありません</div>
+                              <div className="text-center text-gray-500 text-xs py-6 bg-gray-900/50 rounded-xl border border-gray-800/50 font-medium">装備可能なアイテムがありません</div>
                             ) : (
                               (gameState.inventory || []).filter(eq => eq.type === selectedEquipmentSlot).map(eq => (
                                 <button
@@ -3185,23 +3254,23 @@ export default function App() {
                                     });
                                     setSelectedEquipmentSlot(null);
                                   }}
-                                  className="w-full flex items-center justify-between p-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg transition-colors text-left"
+                                  className="w-full flex items-center justify-between p-3 glass-panel hover:bg-gray-800/80 border border-gray-700/50 rounded-xl transition-all duration-300 text-left active:scale-[0.98] shadow-sm"
                                 >
                                   <div>
-                                    <div className="flex items-center">
+                                    <div className="flex items-center mb-1">
                                       <span className={cn(
-                                        "text-[10px] font-bold px-1 rounded mr-2",
-                                        eq.rarity === 'UR' ? "bg-red-500/20 text-red-400" :
-                                        eq.rarity === 'SSR' ? "bg-yellow-500/20 text-yellow-400" :
-                                        eq.rarity === 'SR' ? "bg-purple-500/20 text-purple-400" :
-                                        eq.rarity === 'R' ? "bg-blue-500/20 text-blue-400" :
-                                        "bg-gray-500/20 text-gray-400"
+                                        "text-[10px] font-black px-1.5 py-0.5 rounded mr-2 shadow-inner border",
+                                        eq.rarity === 'UR' ? "bg-red-950/50 text-red-400 border-red-500/50" :
+                                        eq.rarity === 'SSR' ? "bg-yellow-950/50 text-yellow-400 border-yellow-500/50" :
+                                        eq.rarity === 'SR' ? "bg-purple-950/50 text-purple-400 border-purple-500/50" :
+                                        eq.rarity === 'R' ? "bg-blue-950/50 text-blue-400 border-blue-500/50" :
+                                        "bg-gray-800/80 text-gray-400 border-gray-600/50"
                                       )}>{eq.rarity}</span>
-                                      <span className="font-bold text-white text-sm">{eq.name}</span>
+                                      <span className="font-bold text-white text-sm tracking-wide">{eq.name}</span>
                                     </div>
-                                    <div className="text-[10px] text-emerald-400 mt-1">DPS +{formatNumber(eq.dpsBonus)} / x{eq.dpsMultiplier.toFixed(2)}</div>
+                                    <div className="text-[10px] text-emerald-400 font-mono font-bold bg-gray-900/50 inline-block px-1.5 py-0.5 rounded border border-gray-800/50">DPS +{formatNumber(eq.dpsBonus)} / x{eq.dpsMultiplier.toFixed(2)}</div>
                                   </div>
-                                  <div className="text-xs bg-emerald-900/50 text-emerald-400 px-2 py-1 rounded">装備</div>
+                                  <div className="text-[10px] font-black bg-emerald-950/60 text-emerald-400 px-3 py-1.5 rounded-lg border border-emerald-800/50 shadow-sm">装備</div>
                                 </button>
                               ))
                             )}
@@ -3229,34 +3298,35 @@ export default function App() {
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="bg-gradient-to-b from-gray-800 to-gray-900 border border-yellow-500/50 rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center"
+                className="glass-panel border border-yellow-500/30 rounded-3xl p-8 w-full max-w-sm shadow-[0_0_40px_rgba(250,204,21,0.2)] text-center relative overflow-hidden"
               >
-                <div className="w-16 h-16 mx-auto bg-yellow-500/20 rounded-full flex items-center justify-center mb-4">
-                  <Sparkles size={32} className="text-yellow-400" />
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-yellow-500/10 to-transparent pointer-events-none"></div>
+                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-full flex items-center justify-center mb-6 shadow-inner border border-yellow-500/30 relative z-10">
+                  <Sparkles size={40} className="text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)] animate-pulse" />
                 </div>
-                <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400 mb-2">
+                <h3 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400 mb-3 drop-shadow-md tracking-widest relative z-10">
                   おかえりなさい！
                 </h3>
-                <p className="text-gray-300 mb-6 text-sm">
-                  あなたが離れていた {Math.floor(offlineReward.time / 60)}時間 {offlineReward.time % 60}分 の間に、ヒーローたちが戦い続けました。
+                <p className="text-gray-300 mb-8 text-sm font-medium leading-relaxed relative z-10">
+                  あなたが離れていた <span className="text-white font-bold bg-gray-800 px-2 py-0.5 rounded border border-gray-700">{Math.floor(offlineReward.time / 60)}時間 {offlineReward.time % 60}分</span> の間に、<br/>ヒーローたちが戦い続けました。
                 </p>
                 
-                <div className="bg-gray-950 rounded-xl p-4 mb-6 border border-gray-800 space-y-3">
+                <div className="bg-gray-950/80 rounded-2xl p-5 mb-8 border border-gray-800/50 shadow-inner space-y-4 relative z-10">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400 flex items-center"><Coins size={16} className="mr-2 text-yellow-400" /> 獲得ゴールド</span>
-                    <span className="text-yellow-400 font-bold text-lg">+{offlineReward.gold.toLocaleString()}</span>
+                    <span className="text-gray-400 flex items-center font-bold tracking-wider text-sm"><Coins size={18} className="mr-2 text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]" /> 獲得ゴールド</span>
+                    <span className="text-yellow-400 font-black text-xl font-mono drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]">+{offlineReward.gold.toLocaleString()}</span>
                   </div>
                   {offlineReward.gems > 0 && (
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-400 flex items-center"><Gem size={16} className="mr-2 text-pink-400" /> 獲得ジェム</span>
-                      <span className="text-pink-400 font-bold text-lg">+{offlineReward.gems.toLocaleString()}</span>
+                      <span className="text-gray-400 flex items-center font-bold tracking-wider text-sm"><Gem size={18} className="mr-2 text-pink-400 drop-shadow-[0_0_5px_rgba(244,114,182,0.8)]" /> 獲得ジェム</span>
+                      <span className="text-pink-400 font-black text-xl font-mono drop-shadow-[0_0_5px_rgba(244,114,182,0.5)]">+{offlineReward.gems.toLocaleString()}</span>
                     </div>
                   )}
                 </div>
 
                 <button
                   onClick={() => setOfflineReward(null)}
-                  className="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white transition-all active:scale-95 shadow-lg"
+                  className="w-full py-4 rounded-xl font-black text-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white transition-all duration-300 active:scale-95 shadow-[0_0_20px_rgba(250,204,21,0.4)] tracking-widest border border-yellow-400/50 relative z-10"
                 >
                   受け取る
                 </button>
@@ -3275,18 +3345,18 @@ export default function App() {
               className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
             >
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="glass-panel border border-gray-700/50 rounded-3xl p-6 w-full max-w-sm shadow-[0_0_30px_rgba(0,0,0,0.5)] relative overflow-hidden"
               >
-                <h3 className="text-xl font-bold text-white mb-2">{modalState.title}</h3>
-                <p className="text-gray-300 mb-6 text-sm whitespace-pre-wrap">{modalState.message}</p>
+                <h3 className="text-xl font-black text-white mb-3 tracking-widest drop-shadow-md">{modalState.title}</h3>
+                <p className="text-gray-300 mb-8 text-sm whitespace-pre-wrap leading-relaxed font-medium bg-gray-900/50 p-4 rounded-xl border border-gray-800/50">{modalState.message}</p>
                 <div className="flex justify-end space-x-3">
                   {!modalState.isAlert && (
                     <button
                       onClick={() => setModalState({ isOpen: false, title: '', message: '' })}
-                      className="px-4 py-2 rounded-lg font-bold text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                      className="px-5 py-2.5 rounded-xl font-bold text-gray-400 hover:text-white hover:bg-gray-800 transition-all duration-300 border border-gray-700/50 hover:border-gray-600/50"
                     >
                       キャンセル
                     </button>
@@ -3296,7 +3366,7 @@ export default function App() {
                       if (modalState.onConfirm) modalState.onConfirm();
                       else setModalState({ isOpen: false, title: '', message: '' });
                     }}
-                    className="px-4 py-2 rounded-lg font-bold bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+                    className="px-6 py-2.5 rounded-xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-500 hover:to-cyan-500 transition-all duration-300 shadow-lg active:scale-95 border border-blue-500/50 tracking-wider"
                   >
                     {modalState.confirmText || (modalState.isAlert ? 'OK' : '確認')}
                   </button>
@@ -3355,8 +3425,8 @@ export default function App() {
               >
                 {gachaReveal.is10Pull ? (
                   <div className="flex flex-col items-center">
-                    <h2 className="text-3xl font-black text-white tracking-widest mb-8 drop-shadow-lg">10連召喚結果</h2>
-                    <div className="grid grid-cols-5 gap-4 mb-8">
+                    <h2 className="text-3xl font-black text-white tracking-widest mb-10 drop-shadow-lg">10連召喚結果</h2>
+                    <div className="grid grid-cols-5 gap-4 sm:gap-6 mb-10">
                       {gachaReveal.heroes.map((h, idx) => {
                         const def = HEROES.find(hd => hd.id === h.heroId)!;
                         // We can't easily check if it was a duplicate at the exact moment of pull for each,
@@ -3368,14 +3438,15 @@ export default function App() {
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: idx * 0.1 }}
                             className={cn(
-                              "w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-2 flex flex-col items-center justify-center shadow-lg relative overflow-hidden",
+                              "w-16 h-16 sm:w-24 sm:h-24 rounded-2xl border-2 flex flex-col items-center justify-center shadow-lg relative overflow-hidden",
                               RARITY_COLORS[def.rarity].bg,
                               RARITY_COLORS[def.rarity].border
                             )}
                           >
-                            <span className="text-3xl sm:text-4xl drop-shadow-md z-10">{def.emoji}</span>
-                            <div className="absolute bottom-0 w-full bg-black/60 text-center py-1 z-10">
-                              <span className={cn("font-black tracking-widest text-[10px] sm:text-xs", RARITY_COLORS[def.rarity].text)}>
+                            <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none" />
+                            <span className="text-2xl sm:text-4xl drop-shadow-md z-10">{def.emoji}</span>
+                            <div className="absolute bottom-0 w-full bg-black/60 text-center py-1 z-10 backdrop-blur-sm">
+                              <span className={cn("font-black tracking-widest text-[8px] sm:text-xs", RARITY_COLORS[def.rarity].text)}>
                                 {def.rarity}
                               </span>
                             </div>
@@ -3385,7 +3456,7 @@ export default function App() {
                     </div>
                     <button
                       onClick={() => setGachaReveal({ isOpen: false, hero: null, is10Pull: false, heroes: [] })}
-                      className="px-8 py-3 bg-white text-black font-black rounded-full hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)] active:scale-95"
+                      className="px-10 py-3.5 bg-white text-black font-black rounded-full hover:bg-gray-200 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.4)] active:scale-95 tracking-widest text-lg"
                     >
                       確認
                     </button>
@@ -3415,12 +3486,12 @@ export default function App() {
                         </motion.div>
                         
                         <div className="mt-8 text-center">
-                          <h2 className="text-3xl font-black text-white tracking-widest mb-2 drop-shadow-lg">{def.name}</h2>
-                          <div className="flex items-center justify-center gap-2 mb-4">
-                            <span className={cn("px-3 py-1 rounded-full text-sm font-bold border", FACTION_COLORS[def.faction], "bg-black/50")}>
+                          <h2 className="text-3xl font-black text-white tracking-widest mb-3 drop-shadow-lg">{def.name}</h2>
+                          <div className="flex items-center justify-center gap-2 mb-6">
+                            <span className={cn("px-4 py-1.5 rounded-full text-xs font-black tracking-widest border shadow-inner", FACTION_COLORS[def.faction], "bg-black/50")}>
                               {FACTION_JA[def.faction]}
                             </span>
-                            <span className="px-3 py-1 rounded-full text-sm font-bold border border-gray-500 text-gray-300 bg-black/50">
+                            <span className="px-4 py-1.5 rounded-full text-xs font-black tracking-widest border border-gray-500 text-gray-300 bg-black/50 shadow-inner">
                               {CLASS_JA[def.classType]}
                             </span>
                           </div>
@@ -3429,7 +3500,7 @@ export default function App() {
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.5 }}
-                              className="bg-blue-900/50 text-blue-300 px-4 py-2 rounded-xl border border-blue-700/50 font-bold text-sm"
+                              className="bg-blue-950/60 text-blue-400 px-5 py-2.5 rounded-2xl border border-blue-800/50 font-black text-sm tracking-wider shadow-inner"
                             >
                               重複ボーナス: 魂 +1
                             </motion.div>
@@ -3438,7 +3509,7 @@ export default function App() {
 
                         <button
                           onClick={() => setGachaReveal({ isOpen: false, hero: null, is10Pull: false, heroes: [] })}
-                          className="mt-8 px-8 py-3 bg-white text-black font-black rounded-full hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)] active:scale-95"
+                          className="mt-10 px-10 py-3.5 bg-white text-black font-black rounded-full hover:bg-gray-200 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.4)] active:scale-95 tracking-widest text-lg"
                         >
                           確認
                         </button>
@@ -3495,60 +3566,60 @@ export default function App() {
                 initial={{ scale: 0.9, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.9, y: 20 }}
-                className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl flex flex-col"
+                className="glass-panel border border-gray-700/50 rounded-3xl p-6 w-full max-w-sm shadow-[0_0_30px_rgba(0,0,0,0.5)] flex flex-col relative overflow-hidden"
                 onClick={e => e.stopPropagation()}
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-bold text-white flex items-center">
+                <div className="flex justify-between items-center mb-6 relative z-10">
+                  <h3 className="text-xl font-black text-white flex items-center tracking-widest drop-shadow-md">
                     <BarChart2 size={20} className="mr-2 text-blue-400" /> ステータス詳細
                   </h3>
-                  <button onClick={() => setShowStats(false)} className="text-gray-500 hover:text-white">
-                    <X size={24} />
+                  <button onClick={() => setShowStats(false)} className="text-gray-400 hover:text-white bg-gray-800/50 p-1.5 rounded-full transition-colors border border-gray-700/50 hover:bg-gray-700/50">
+                    <X size={20} />
                   </button>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-3 relative z-10">
                   {(() => {
                     const stats = getDpsBreakdown();
                     return (
                       <>
-                        <div className="flex justify-between items-center bg-gray-800 p-3 rounded-lg border border-gray-700">
-                          <span className="text-gray-400 text-sm">ヒーロー基礎DPS合計</span>
-                          <span className="text-white font-bold">{formatNumber(stats.baseTotal)}</span>
+                        <div className="flex justify-between items-center bg-gray-900/60 p-3.5 rounded-2xl border border-gray-700/50 shadow-inner">
+                          <span className="text-gray-400 text-xs font-bold tracking-wider">ヒーロー基礎DPS合計</span>
+                          <span className="text-white font-black font-mono">{formatNumber(stats.baseTotal)}</span>
                         </div>
-                        <div className="flex justify-between items-center bg-gray-800 p-3 rounded-lg border border-gray-700">
-                          <span className="text-gray-400 text-sm">個別倍率適用後</span>
-                          <span className="text-white font-bold">{formatNumber(stats.afterIndividualMults)}</span>
+                        <div className="flex justify-between items-center bg-gray-900/60 p-3.5 rounded-2xl border border-gray-700/50 shadow-inner">
+                          <span className="text-gray-400 text-xs font-bold tracking-wider">個別倍率適用後</span>
+                          <span className="text-white font-black font-mono">{formatNumber(stats.afterIndividualMults)}</span>
                         </div>
-                        <div className="flex justify-between items-center bg-gray-800 p-3 rounded-lg border border-gray-700">
-                          <span className="text-gray-400 text-sm">シナジー全体倍率</span>
-                          <span className="text-yellow-400 font-bold">x{stats.globalMult.toFixed(2)}</span>
+                        <div className="flex justify-between items-center bg-gray-900/60 p-3.5 rounded-2xl border border-gray-700/50 shadow-inner">
+                          <span className="text-gray-400 text-xs font-bold tracking-wider">シナジー全体倍率</span>
+                          <span className="text-yellow-400 font-black font-mono bg-yellow-950/40 px-2 py-0.5 rounded border border-yellow-500/30">x{stats.globalMult.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between items-center bg-gray-800 p-3 rounded-lg border border-gray-700">
-                          <span className="text-gray-400 text-sm">強化(アップグレード)倍率</span>
-                          <span className="text-green-400 font-bold">x{stats.upgradeMult.toFixed(2)}</span>
+                        <div className="flex justify-between items-center bg-gray-900/60 p-3.5 rounded-2xl border border-gray-700/50 shadow-inner">
+                          <span className="text-gray-400 text-xs font-bold tracking-wider">強化(アップグレード)倍率</span>
+                          <span className="text-emerald-400 font-black font-mono bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/30">x{stats.upgradeMult.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between items-center bg-gray-800 p-3 rounded-lg border border-gray-700">
-                          <span className="text-gray-400 text-sm">タレント倍率</span>
-                          <span className="text-purple-400 font-bold">x{stats.talentMult.toFixed(2)}</span>
+                        <div className="flex justify-between items-center bg-gray-900/60 p-3.5 rounded-2xl border border-gray-700/50 shadow-inner">
+                          <span className="text-gray-400 text-xs font-bold tracking-wider">タレント倍率</span>
+                          <span className="text-purple-400 font-black font-mono bg-purple-950/40 px-2 py-0.5 rounded border border-purple-500/30">x{stats.talentMult.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between items-center bg-gray-800 p-3 rounded-lg border border-gray-700">
-                          <span className="text-gray-400 text-sm">アクティブスキル倍率</span>
-                          <span className="text-orange-400 font-bold">x{stats.skillMult.toFixed(2)}</span>
+                        <div className="flex justify-between items-center bg-gray-900/60 p-3.5 rounded-2xl border border-gray-700/50 shadow-inner">
+                          <span className="text-gray-400 text-xs font-bold tracking-wider">アクティブスキル倍率</span>
+                          <span className="text-orange-400 font-black font-mono bg-orange-950/40 px-2 py-0.5 rounded border border-orange-500/30">x{stats.skillMult.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between items-center bg-gray-800 p-3 rounded-lg border border-gray-700">
-                          <span className="text-gray-400 text-sm">転生倍率</span>
-                          <span className="text-cyan-400 font-bold">x{stats.prestigeMult.toFixed(2)}</span>
+                        <div className="flex justify-between items-center bg-gray-900/60 p-3.5 rounded-2xl border border-gray-700/50 shadow-inner">
+                          <span className="text-gray-400 text-xs font-bold tracking-wider">転生倍率</span>
+                          <span className="text-cyan-400 font-black font-mono bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-500/30">x{stats.prestigeMult.toFixed(2)}</span>
                         </div>
                         {currentEnemyTrait === 'EVASIVE' && (
-                          <div className="flex justify-between items-center bg-red-900/30 p-3 rounded-lg border border-red-900/50">
-                            <span className="text-red-400 text-sm">敵特性: 回避</span>
-                            <span className="text-red-400 font-bold">x0.70</span>
+                          <div className="flex justify-between items-center bg-red-950/40 p-3.5 rounded-2xl border border-red-900/50 shadow-inner">
+                            <span className="text-red-400 text-xs font-bold tracking-wider">敵特性: 回避</span>
+                            <span className="text-red-400 font-black font-mono bg-red-950/60 px-2 py-0.5 rounded border border-red-800/50">x0.70</span>
                           </div>
                         )}
-                        <div className="flex justify-between items-center bg-blue-900/30 p-4 rounded-lg border border-blue-500/50 mt-2">
-                          <span className="text-blue-200 font-bold">最終DPS</span>
-                          <span className="text-blue-400 font-black text-xl">{formatNumber(stats.finalDps)}</span>
+                        <div className="flex justify-between items-center bg-gradient-to-r from-blue-900/40 to-cyan-900/40 p-4 rounded-2xl border border-blue-500/50 mt-4 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                          <span className="text-blue-200 font-black tracking-widest text-sm">最終DPS</span>
+                          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 font-black text-2xl font-mono drop-shadow-sm">{formatNumber(stats.finalDps)}</span>
                         </div>
                       </>
                     );
@@ -3569,36 +3640,36 @@ export default function App() {
               className="absolute inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
             >
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl flex flex-col"
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="glass-panel border border-gray-700/50 rounded-3xl p-6 w-full max-w-sm shadow-[0_0_30px_rgba(0,0,0,0.5)] flex flex-col relative overflow-hidden"
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-bold text-white flex items-center">
+                <div className="flex justify-between items-center mb-6 relative z-10">
+                  <h3 className="text-xl font-black text-white flex items-center tracking-widest drop-shadow-md">
                     <Settings size={20} className="mr-2 text-gray-400" /> 設定
                   </h3>
-                  <button onClick={() => setIsSettingsOpen(false)} className="text-gray-500 hover:text-white">
-                    ✕
+                  <button onClick={() => setIsSettingsOpen(false)} className="text-gray-400 hover:text-white bg-gray-800/50 p-1.5 rounded-full transition-colors border border-gray-700/50 hover:bg-gray-700/50">
+                    <X size={20} />
                   </button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 relative z-10">
                   {/* Account Section */}
-                  <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                    <h4 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">アカウント</h4>
+                  <div className="bg-gray-900/60 p-5 rounded-2xl border border-gray-700/50 shadow-inner">
+                    <h4 className="text-xs font-black text-gray-400 mb-4 uppercase tracking-widest flex items-center"><span className="bg-gray-800 px-2 py-1 rounded border border-gray-700 mr-2">ACCOUNT</span> アカウント</h4>
                     {isAuthReady ? (
                       user ? (
-                        <div className="flex flex-col space-y-3">
-                          <div className="flex items-center space-x-3">
+                        <div className="flex flex-col space-y-4">
+                          <div className="flex items-center space-x-4 glass-panel p-3 rounded-xl border border-gray-700/50">
                             {user.photoURL ? (
-                              <img src={user.photoURL} alt="Profile" className="w-10 h-10 rounded-full border-2 border-gray-600" referrerPolicy="no-referrer" />
+                              <img src={user.photoURL} alt="Profile" className="w-12 h-12 rounded-full border-2 border-gray-600 shadow-md" referrerPolicy="no-referrer" />
                             ) : (
-                              <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-xl">👤</div>
+                              <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center text-2xl border-2 border-gray-700 shadow-md">👤</div>
                             )}
                             <div className="flex flex-col overflow-hidden">
-                              <span className="text-sm font-bold text-white truncate">{user.displayName || '名無しプレイヤー'}</span>
-                              <span className="text-xs text-gray-400 truncate">{user.email}</span>
+                              <span className="text-sm font-black text-white truncate tracking-wide">{user.displayName || '名無しプレイヤー'}</span>
+                              <span className="text-[10px] text-gray-400 truncate font-mono mt-0.5">{user.email}</span>
                             </div>
                           </div>
                           <button
@@ -3610,7 +3681,7 @@ export default function App() {
                                 setModalState({ isOpen: true, title: 'エラー', message: 'ログアウトに失敗しました。', isAlert: true });
                               }
                             }}
-                            className="w-full py-2 rounded-lg font-bold text-sm bg-gray-700 hover:bg-gray-600 text-white transition-colors flex items-center justify-center"
+                            className="w-full py-3 rounded-xl font-black text-sm bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/50 transition-all duration-300 flex items-center justify-center active:scale-95 tracking-widest"
                           >
                             <LogOut size={16} className="mr-2" /> ログアウト
                           </button>
@@ -3625,20 +3696,22 @@ export default function App() {
                               setModalState({ isOpen: true, title: 'エラー', message: 'ログインに失敗しました。', isAlert: true });
                             }
                           }}
-                          className="w-full py-3 rounded-lg font-bold text-sm bg-white hover:bg-gray-100 text-gray-900 transition-colors flex items-center justify-center"
+                          className="w-full py-3.5 rounded-xl font-black text-sm bg-white hover:bg-gray-200 text-gray-900 transition-all duration-300 flex items-center justify-center shadow-lg active:scale-95 tracking-widest"
                         >
-                          <LogIn size={16} className="mr-2" /> Googleでログイン
+                          <LogIn size={18} className="mr-2" /> Googleでログイン
                         </button>
                       )
                     ) : (
-                      <div className="text-center text-gray-500 text-sm py-2">読み込み中...</div>
+                      <div className="flex justify-center py-4">
+                        <div className="w-6 h-6 border-2 border-gray-600 border-t-white rounded-full animate-spin"></div>
+                      </div>
                     )}
                   </div>
 
                   {/* Cloud Save Section */}
-                  <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                    <h4 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">クラウドセーブ</h4>
-                    <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-gray-900/60 p-5 rounded-2xl border border-gray-700/50 shadow-inner">
+                    <h4 className="text-xs font-black text-gray-400 mb-4 uppercase tracking-widest flex items-center"><span className="bg-gray-800 px-2 py-1 rounded border border-gray-700 mr-2">CLOUD</span> クラウドセーブ</h4>
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={async () => {
                           if (!user) {
@@ -3660,9 +3733,9 @@ export default function App() {
                           }
                         }}
                         disabled={!user}
-                        className="py-2 rounded-lg font-bold text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:bg-gray-700 text-white transition-colors flex flex-col items-center justify-center"
+                        className="py-3 rounded-xl font-black text-xs bg-blue-950/40 hover:bg-blue-900/60 disabled:opacity-50 disabled:bg-gray-800/50 text-blue-400 border border-blue-800/50 transition-all duration-300 flex flex-col items-center justify-center active:scale-95 tracking-widest"
                       >
-                        <CloudUpload size={18} className="mb-1" /> クラウドへ保存
+                        <CloudUpload size={20} className="mb-1.5" /> クラウドへ保存
                       </button>
                       <button
                         onClick={async () => {
@@ -3697,16 +3770,16 @@ export default function App() {
                           });
                         }}
                         disabled={!user}
-                        className="py-2 rounded-lg font-bold text-xs bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:bg-gray-700 text-white transition-colors flex flex-col items-center justify-center"
+                        className="py-3 rounded-xl font-black text-xs bg-emerald-950/40 hover:bg-emerald-900/60 disabled:opacity-50 disabled:bg-gray-800/50 text-emerald-400 border border-emerald-800/50 transition-all duration-300 flex flex-col items-center justify-center active:scale-95 tracking-widest"
                       >
-                        <CloudDownload size={18} className="mb-1" /> クラウドから読込
+                        <CloudDownload size={20} className="mb-1.5" /> クラウドから読込
                       </button>
                     </div>
                   </div>
                   
                   {/* Danger Zone */}
-                  <div className="bg-red-900/20 p-4 rounded-xl border border-red-900/50">
-                    <h4 className="text-sm font-bold text-red-400 mb-3 uppercase tracking-wider">危険な操作</h4>
+                  <div className="bg-red-950/20 p-5 rounded-2xl border border-red-900/30 shadow-inner">
+                    <h4 className="text-xs font-black text-red-500/80 mb-4 uppercase tracking-widest flex items-center"><span className="bg-red-950/50 px-2 py-1 rounded border border-red-900/50 mr-2 text-red-400">DANGER</span> 危険な操作</h4>
                     <button
                       onClick={() => {
                         setModalState({
@@ -3719,9 +3792,9 @@ export default function App() {
                           }
                         });
                       }}
-                      className="w-full py-2 rounded-lg font-bold text-sm bg-red-600 hover:bg-red-500 text-white transition-colors flex items-center justify-center"
+                      className="w-full py-3 rounded-xl font-black text-sm bg-red-600 hover:bg-red-500 text-white transition-all duration-300 flex items-center justify-center shadow-lg active:scale-95 tracking-widest border border-red-500/50"
                     >
-                      <Trash2 size={16} className="mr-2" /> データをリセット
+                      <Trash2 size={18} className="mr-2" /> データをリセット
                     </button>
                   </div>
                 </div>
@@ -3739,19 +3812,20 @@ export default function App() {
               exit={{ opacity: 0, y: -20, scale: 0.8 }}
               className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none"
             >
-              <div className="bg-gray-900/90 border border-yellow-500/50 rounded-xl p-3 shadow-2xl flex items-center gap-3 backdrop-blur-sm">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl ${
-                  dropNotification.rarity === 'N' ? 'bg-gray-700 text-gray-300' :
-                  dropNotification.rarity === 'R' ? 'bg-blue-900/50 text-blue-400' :
-                  dropNotification.rarity === 'SR' ? 'bg-purple-900/50 text-purple-400' :
-                  dropNotification.rarity === 'SSR' ? 'bg-yellow-900/50 text-yellow-400' :
-                  'bg-red-900/50 text-red-400'
-                }`}>
+              <div className="glass-panel border border-yellow-500/50 rounded-2xl p-4 shadow-[0_0_30px_rgba(250,204,21,0.3)] flex items-center gap-4 backdrop-blur-md">
+                <div className={cn(
+                  "w-12 h-12 rounded-xl flex items-center justify-center text-2xl border-2 shadow-inner",
+                  dropNotification.rarity === 'UR' ? "bg-red-950/50 text-red-400 border-red-500/50" :
+                  dropNotification.rarity === 'SSR' ? "bg-yellow-950/50 text-yellow-400 border-yellow-500/50" :
+                  dropNotification.rarity === 'SR' ? "bg-purple-950/50 text-purple-400 border-purple-500/50" :
+                  dropNotification.rarity === 'R' ? "bg-blue-950/50 text-blue-400 border-blue-500/50" :
+                  "bg-gray-800/80 text-gray-400 border-gray-600/50"
+                )}>
                   {dropNotification.type === 'weapon' ? '🗡️' : dropNotification.type === 'armor' ? '🛡️' : '💍'}
                 </div>
                 <div>
-                  <div className="text-xs text-yellow-400 font-bold">装備ドロップ！</div>
-                  <div className="text-sm text-white font-bold">{dropNotification.name}</div>
+                  <div className="text-[10px] text-yellow-400 font-black tracking-widest uppercase mb-0.5 drop-shadow-sm">装備ドロップ！</div>
+                  <div className="text-sm text-white font-bold tracking-wide">{dropNotification.name}</div>
                 </div>
               </div>
             </motion.div>
